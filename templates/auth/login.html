@@ -1,0 +1,182 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1.0">
+  <title>Login — SmartPay</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;0,700;1,400&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing:border-box; margin:0; padding:0; }
+    :root {
+      --pd:#606F49; --pm:#728359; --pl:#849669; --sg:#97A97C;
+      --pg:#B5C99A; --lm:#C2D5AA; --bg:#F5F8F0; --td:#2C3320;
+      --cb:#D6E4C8; --warn:#D4A017; --danger:#C0392B; --success:#27AE60;
+    }
+    body { font-family:'DM Sans',sans-serif; background:var(--bg); height:100vh; display:flex; overflow:hidden; }
+
+    /* LEFT PANEL */
+    .left-panel {
+      flex:0 0 60%; position:relative; overflow:hidden;
+      background: linear-gradient(135deg, #2C3320 0%, #606F49 40%, #849669 75%, #B5C99A 100%);
+      display:flex; flex-direction:column; align-items:center; justify-content:center; padding:3rem;
+    }
+    .left-panel::before {
+      content:''; position:absolute; inset:0;
+      background: radial-gradient(ellipse at 30% 70%, rgba(181,201,154,.25) 0%, transparent 60%),
+                  radial-gradient(ellipse at 80% 20%, rgba(96,111,73,.3) 0%, transparent 50%);
+    }
+    /* Floating shapes */
+    .shape { position:absolute; border-radius:50%; opacity:.18; animation: float 6s ease-in-out infinite; }
+    .s1 { width:220px;height:220px;background:var(--pg);top:-60px;left:-60px;animation-delay:0s; }
+    .s2 { width:140px;height:140px;background:var(--lm);bottom:60px;right:-40px;animation-delay:2s; }
+    .s3 { width:80px;height:80px;background:var(--sg);top:40%;left:10%;animation-delay:4s; }
+    .s4 { width:180px;height:180px;background:var(--pd);bottom:-50px;left:30%;animation-delay:1s; border-radius:40%; }
+    .s5 { width:60px;height:60px;background:var(--lm);top:20%;right:15%;animation-delay:3s; border-radius:30%; }
+    @keyframes float {
+      0%,100% { transform:translateY(0) rotate(0deg); }
+      50%      { transform:translateY(-18px) rotate(6deg); }
+    }
+    .brand-block { position:relative; z-index:2; text-align:center; }
+    .shield-icon { width:80px;height:80px;margin:0 auto 1.5rem; }
+    .brand-block h1 {
+      font-family:'Cormorant Garamond',serif; font-size:3.2rem; font-weight:700;
+      color:#fff; letter-spacing:-.5px; line-height:1;
+    }
+    .brand-block p {
+      color:rgba(255,255,255,.75); font-size:1.05rem; margin-top:.8rem; font-weight:300; letter-spacing:.08em;
+    }
+    .trust-badges { display:flex; gap:1rem; margin-top:2.5rem; flex-wrap:wrap; justify-content:center; }
+    .trust-badge {
+      background:rgba(255,255,255,.12); border:1px solid rgba(255,255,255,.22);
+      border-radius:10px; padding:.55rem 1rem; color:rgba(255,255,255,.85); font-size:.8rem;
+      display:flex; align-items:center; gap:.4rem; backdrop-filter:blur(8px);
+    }
+
+    /* RIGHT PANEL */
+    .right-panel {
+      flex:1; display:flex; align-items:center; justify-content:center;
+      padding:2.5rem; overflow-y:auto;
+    }
+    .login-card { width:100%; max-width:420px; }
+    .login-card h2 {
+      font-family:'Cormorant Garamond',serif; font-size:2.2rem; font-weight:700;
+      color:var(--td); margin-bottom:.3rem;
+    }
+    .login-card .subtitle { color:#6b7280; font-size:.9rem; margin-bottom:2rem; }
+
+    /* FLASH */
+    .flash { display:flex;align-items:center;gap:.5rem;padding:.75rem 1rem;border-radius:10px;font-size:.85rem;margin-bottom:1rem; }
+    .flash-error  { background:#fdedec;border:1px solid #f1948a;color:#922b21; }
+    .flash-success{ background:#eafaf1;border:1px solid #a9dfbf;color:#1e8449; }
+    .flash-info   { background:#eaf4fc;border:1px solid #85c1e9;color:#1a5276; }
+
+    /* FORM */
+    .form-group { margin-bottom:1.2rem; }
+    label { display:block; font-size:.85rem; font-weight:600; color:var(--td); margin-bottom:.4rem; }
+    .form-control {
+      width:100%; padding:.75rem 1rem; border:1.5px solid var(--cb);
+      border-radius:10px; font-family:'DM Sans',sans-serif; font-size:.92rem;
+      color:var(--td); background:#fff; outline:none;
+      transition:border-color .2s, box-shadow .2s;
+    }
+    .form-control:focus { border-color:var(--pm); box-shadow:0 0 0 3px rgba(114,131,89,.15); }
+    .input-icon { position:relative; }
+    .input-icon .form-control { padding-left:2.8rem; }
+    .input-icon .icon { position:absolute;left:.9rem;top:50%;transform:translateY(-50%);color:#9ca3af; }
+
+    .remember-row { display:flex;align-items:center;gap:.5rem;margin-bottom:1.2rem; }
+    .remember-row input[type=checkbox] { accent-color:var(--pd); width:16px;height:16px; }
+    .remember-row label { margin:0;font-size:.85rem;font-weight:400;color:#6b7280; }
+
+    .btn-login {
+      width:100%;padding:.85rem;background:var(--pd);color:#fff;border:none;border-radius:10px;
+      font-family:'DM Sans',sans-serif;font-size:1rem;font-weight:700;cursor:pointer;
+      transition:all .22s;letter-spacing:.02em;
+    }
+    .btn-login:hover { background:var(--pm);transform:translateY(-1px);box-shadow:0 6px 20px rgba(96,111,73,.3); }
+    .divider { text-align:center;color:#9ca3af;font-size:.82rem;margin:1.2rem 0;position:relative; }
+    .divider::before,.divider::after { content:'';flex:1;border-bottom:1px solid var(--cb); }
+    .divider-line { display:flex;align-items:center;gap:.8rem; }
+    .signup-link { text-align:center;font-size:.88rem;color:#6b7280;margin-top:1.2rem; }
+    .signup-link a { color:var(--pd);font-weight:600;text-decoration:none; }
+    .signup-link a:hover { text-decoration:underline; }
+
+    @media(max-width:768px){ .left-panel { display:none; } body { justify-content:center; } }
+  </style>
+</head>
+<body>
+  <!-- LEFT -->
+  <div class="left-panel">
+    <div class="shape s1"></div>
+    <div class="shape s2"></div>
+    <div class="shape s3"></div>
+    <div class="shape s4"></div>
+    <div class="shape s5"></div>
+    <div class="brand-block">
+      <svg class="shield-icon" viewBox="0 0 80 80" fill="none">
+        <path d="M40 6L10 18V40C10 57 23.6 72.6 40 76C56.4 72.6 70 57 70 40V18L40 6Z" fill="rgba(255,255,255,0.9)"/>
+        <path d="M28 40L36 48L52 32" stroke="#606F49" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      <h1>SmartPay</h1>
+      <p>Smart Credit. Real Security.</p>
+      <div class="trust-badges">
+        <div class="trust-badge">🤖&nbsp;AI-Powered Credit</div>
+        <div class="trust-badge">🛡️&nbsp;Fraud Detection</div>
+        <div class="trust-badge">🔒&nbsp;Bank-Grade Security</div>
+        <div class="trust-badge">⚡&nbsp;Instant Approval</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- RIGHT -->
+  <div class="right-panel">
+    <div class="login-card">
+      <h2>Welcome back</h2>
+      <p class="subtitle">Sign in to continue to SmartPay</p>
+
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+          {% for category, message in messages %}
+            <div class="flash flash-{{ category }}">
+              {% if category == 'success' %}✅{% elif category == 'error' %}❌{% else %}ℹ️{% endif %} {{ message }}
+            </div>
+          {% endfor %}
+        {% endif %}
+      {% endwith %}
+
+      <form method="POST" action="{{ url_for('auth.login') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token is defined else '' }}">
+
+        <div class="form-group">
+          <label for="email">Email Address</label>
+          <div class="input-icon">
+            <svg class="icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+            <input type="email" id="email" name="email" class="form-control" placeholder="you@example.com" required autocomplete="email">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="password">Password</label>
+          <div class="input-icon">
+            <svg class="icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+            <input type="password" id="password" name="password" class="form-control" placeholder="••••••••" required autocomplete="current-password">
+          </div>
+        </div>
+
+        <div class="remember-row">
+          <input type="checkbox" id="remember_me" name="remember_me">
+          <label for="remember_me">Remember me for 30 days</label>
+        </div>
+
+        <button type="submit" class="btn-login">Sign In →</button>
+      </form>
+
+      <div class="signup-link">
+        Don't have an account? <a href="{{ url_for('auth.signup') }}">Create one free</a>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

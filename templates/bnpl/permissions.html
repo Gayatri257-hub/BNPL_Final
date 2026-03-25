@@ -1,0 +1,99 @@
+﻿{% extends "base.html" %}
+{% block title %}Permissions — SmartPay BNPL{% endblock %}
+{% block head %}
+<style>
+  .perm-wrap{max-width:640px;margin:0 auto;text-align:center;}
+  .shield-big{width:90px;height:90px;margin:0 auto 1.5rem;}
+  .perm-title{font-size:2rem;font-weight:700;color:var(--text-dark);margin-bottom:.4rem;}
+  .perm-sub{color:#6b7280;font-size:.92rem;margin-bottom:2rem;}
+  .perms-list{display:flex;flex-direction:column;gap:.9rem;text-align:left;margin-bottom:2rem;}
+  .perm-card{background:#fff;border:1px solid var(--card-border);border-radius:14px;padding:1.1rem 1.4rem;display:flex;align-items:center;gap:1rem;box-shadow:0 2px 10px rgba(96,111,73,.06);transition:border-color .2s;}
+  .perm-card.on{border-color:var(--primary-mid);}
+  .perm-icon{font-size:1.6rem;flex-shrink:0;width:44px;text-align:center;}
+  .perm-info{flex:1;}
+  .perm-name{font-weight:700;font-size:.9rem;color:var(--text-dark);}
+  .perm-desc{font-size:.78rem;color:#9ca3af;margin-top:.15rem;}
+  /* Toggle switch */
+  .toggle{position:relative;width:44px;height:24px;flex-shrink:0;}
+  .toggle input{opacity:0;width:0;height:0;}
+  .slider{position:absolute;inset:0;background:var(--card-border);border-radius:24px;cursor:pointer;transition:.3s;}
+  .slider::before{content:'';position:absolute;width:18px;height:18px;left:3px;top:3px;background:#fff;border-radius:50%;transition:.3s;}
+  input:checked+.slider{background:var(--primary-dark);}
+  input:checked+.slider::before{transform:translateX(20px);}
+
+  .proceed-btn{width:100%;padding:.9rem;background:var(--primary-dark);color:#fff;border:none;border-radius:12px;font-family:'DM Sans',sans-serif;font-size:1rem;font-weight:700;cursor:pointer;transition:all .22s;margin-bottom:.5rem;}
+  .proceed-btn:disabled{background:#9ca3af;cursor:not-allowed;}
+  .proceed-btn:not(:disabled):hover{background:var(--primary-mid);transform:translateY(-1px);box-shadow:0 5px 18px rgba(96,111,73,.28);}
+  .security-note{font-size:.78rem;color:#9ca3af;text-align:center;}
+</style>
+{% endblock %}
+{% block content %}
+<div class="perm-wrap">
+  <svg class="shield-big" viewBox="0 0 80 80" fill="none">
+    <path d="M40 6L10 18V40C10 57 23.6 72.6 40 76C56.4 72.6 70 57 70 40V18L40 6Z" fill="#606F49"/>
+    <path d="M28 40L36 48L52 32" stroke="white" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/>
+  </svg>
+  <h1 class="perm-title">Permission Request</h1>
+  <p class="perm-sub">Before we proceed, SmartPay needs the following permissions to assess your creditworthiness accurately.</p>
+
+  <div class="perms-list">
+    {% set perms = [
+      ('📍','Location Access','Your current city is used to detect unusual activity','perm_location'),
+      ('📊','Transaction History','Analyzes your purchase patterns for credit scoring','perm_txn'),
+      ('📱','Device Information','Device fingerprint helps prevent account takeover','perm_device'),
+      ('👁️','Behavioral Monitoring','Session behavior helps validate identity authenticity','perm_behavior'),
+      ('🏦','Credit Bureau Check','CIBIL/Experian data improves approval accuracy','perm_bureau'),
+    ] %}
+    {% for icon, name, desc, pid in perms %}
+    <div class="perm-card" id="card-{{ pid }}">
+      <div class="perm-icon">{{ icon }}</div>
+      <div class="perm-info">
+        <div class="perm-name">{{ name }}</div>
+        <div class="perm-desc">{{ desc }}</div>
+      </div>
+      <label class="toggle">
+        <input type="checkbox" id="{{ pid }}" onchange="togglePerm(this,'card-{{ pid }}')">
+        <span class="slider"></span>
+      </label>
+    </div>
+    {% endfor %}
+  </div>
+
+  <form method="POST" action="{{ url_for('bnpl.credit_check') }}" id="permForm">
+    <input type="hidden" id="f_location" name="location" value="Unknown">
+    <input type="hidden" id="f_device" name="device_info" value="Unknown">
+    <button type="button" class="proceed-btn" id="proceedBtn" disabled onclick="requestPermissions()">
+      🔍 Proceed to Credit Check
+    </button>
+  </form>
+  <p class="security-note">🔒 All data is encrypted and processed locally. No data is sold to third parties.</p>
+</div>
+
+<script>
+  let checked = 0;
+  const total = 5;
+
+  function togglePerm(cb, cardId) {
+    const card = document.getElementById(cardId);
+    if (cb.checked) { checked++; card.classList.add('on'); }
+    else { checked--; card.classList.remove('on'); }
+    document.getElementById('proceedBtn').disabled = checked < total;
+  }
+
+  function requestPermissions() {
+    // Request geolocation
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(pos => {
+        document.getElementById('f_location').value = pos.coords.latitude+','+pos.coords.longitude;
+      }, () => {
+        document.getElementById('f_location').value = Intl.DateTimeFormat().resolvedOptions().timeZone || 'Unknown';
+      });
+    }
+    // Device info
+    const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    const device = `${navigator.userAgent.slice(0,80)} | ${screen.width}x${screen.height} | ${tz}`;
+    document.getElementById('f_device').value = device;
+    setTimeout(() => document.getElementById('permForm').submit(), 600);
+  }
+</script>
+{% endblock %}

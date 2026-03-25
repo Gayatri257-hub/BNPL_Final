@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}SmartPay{% endblock %} — Smart BNPL Platform</title>
+  <meta name="description" content="SmartPay — AI-powered Buy Now Pay Later platform with real-time fraud detection and smart credit scoring.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;0,700;1,400&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --primary-dark:  #606F49;
+      --primary-mid:   #728359;
+      --primary-light: #849669;
+      --soft-green:    #97A97C;
+      --pale-green:    #B5C99A;
+      --light-mint:    #C2D5AA;
+      --bg:            #F5F8F0;
+      --text-dark:     #2C3320;
+      --card-border:   #D6E4C8;
+      --warning:       #D4A017;
+      --danger:        #C0392B;
+      --success:       #27AE60;
+      --white:         #FFFFFF;
+      --shadow:        0 4px 24px rgba(96,111,73,.12);
+      --shadow-hover:  0 8px 36px rgba(96,111,73,.22);
+      --radius:        14px;
+    }
+    html { scroll-behavior: smooth; }
+    body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text-dark); min-height: 100vh; display: flex; flex-direction: column; }
+    h1,h2,h3,h4,h5 { font-family: 'Cormorant Garamond', serif; }
+
+    /* ── NAV ── */
+    .navbar {
+      background: #606F49;
+      border-bottom: none;
+      padding: 0 2rem;
+      height: 64px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky; top: 0; z-index: 1000;
+      box-shadow: 0 2px 16px rgba(44,51,32,.3);
+    }
+    .nav-brand { display: flex; align-items: center; gap: .6rem; text-decoration: none; }
+    .nav-brand svg { width: 34px; height: 34px; }
+    .nav-brand span { font-family: 'Cormorant Garamond', serif; font-size: 1.55rem; font-weight: 700; color: #fff; letter-spacing: -.3px; }
+    .nav-links { display: flex; align-items: center; gap: 1.8rem; }
+    .nav-links a { text-decoration: none; color: rgba(255,255,255,.85); font-size: .9rem; font-weight: 500; letter-spacing: .02em; transition: color .2s; position: relative; }
+    .nav-links a::after { content:''; position:absolute; bottom:-4px; left:0; width:0; height:2px; background:rgba(255,255,255,.7); transition: width .25s; border-radius:2px; }
+    .nav-links a:hover { color: #fff; }
+    .nav-links a:hover::after { width:100%; }
+    .nav-right { display: flex; align-items: center; gap: 1.2rem; }
+    .cart-btn { position: relative; text-decoration: none; display: flex; align-items: center; color: rgba(255,255,255,.85); transition: color .2s; }
+    .cart-btn:hover { color: #fff; }
+    .cart-badge {
+      position: absolute; top: -8px; right: -10px;
+      background: #fff; color: #606F49;
+      font-size: .65rem; font-weight: 700;
+      width: 18px; height: 18px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-family: 'DM Sans', sans-serif;
+    }
+    .avatar {
+      width: 36px; height: 36px; border-radius: 50%;
+      background: rgba(255,255,255,.2);
+      color: #fff; font-weight: 700; font-size: .85rem;
+      display: flex; align-items: center; justify-content: center;
+      font-family: 'DM Sans', sans-serif; cursor: pointer;
+      border: 2px solid rgba(255,255,255,.3);
+    }
+    .logout-btn {
+      font-size: .82rem; font-weight: 500; color: rgba(255,255,255,.85);
+      text-decoration: none; padding: .35rem .85rem;
+      border: 1.5px solid rgba(255,255,255,.4); border-radius: 8px;
+      transition: all .2s;
+    }
+    .logout-btn:hover { background: rgba(255,255,255,.15); color: #fff; border-color: rgba(255,255,255,.7); }
+
+    /* ── FLASH ── */
+    .flash-container { padding: .75rem 2rem 0; }
+    .flash { display: flex; align-items: center; gap: .6rem; padding: .8rem 1.2rem; border-radius: 10px; font-size: .88rem; margin-bottom: .6rem; animation: slideDown .3s ease; }
+    @keyframes slideDown { from { opacity:0; transform:translateY(-10px); } to { opacity:1; transform:translateY(0); } }
+    .flash-success { background: #eafaf1; border:1px solid #a9dfbf; color: #1e8449; }
+    .flash-error   { background: #fdedec; border:1px solid #f1948a; color: #922b21; }
+    .flash-info    { background: #eaf4fc; border:1px solid #85c1e9; color: #1a5276; }
+    .flash-close { margin-left: auto; cursor:pointer; opacity:.6; background:none; border:none; font-size:1.1rem; color: inherit; }
+
+    /* ── MAIN ── */
+    main { flex: 1; padding: 2rem; max-width: 1280px; width: 100%; margin: 0 auto; }
+
+    /* ── FOOTER ── */
+    footer {
+      background: var(--text-dark); color: #b5c99a;
+      text-align: center; padding: 1.2rem 2rem;
+      font-size: .82rem; letter-spacing: .04em;
+      margin-top: auto;
+    }
+    footer strong { color: var(--pale-green); }
+
+    /* ── UTILITY CLASSES ── */
+    .btn { display:inline-flex; align-items:center; gap:.4rem; padding:.65rem 1.4rem; border-radius:10px; font-family:'DM Sans',sans-serif; font-size:.9rem; font-weight:600; cursor:pointer; transition:all .22s; text-decoration:none; border:none; }
+    .btn-primary { background:var(--primary-dark); color:#fff; }
+    .btn-primary:hover { background:var(--primary-mid); box-shadow:var(--shadow-hover); transform:translateY(-1px); }
+    .btn-outline { background:transparent; color:var(--primary-dark); border:1.5px solid var(--primary-dark); }
+    .btn-outline:hover { background:var(--primary-dark); color:#fff; }
+    .btn-sm { padding:.4rem 1rem; font-size:.82rem; }
+    .badge { display:inline-block; padding:.2rem .6rem; border-radius:6px; font-size:.72rem; font-weight:700; letter-spacing:.04em; }
+    .badge-success { background:#eafaf1; color:#1e8449; }
+    .badge-warning { background:#fef9e7; color:#9a6f00; }
+    .badge-danger  { background:#fdedec; color:#922b21; }
+    .badge-info    { background:#eaf4fc; color:#1a5276; }
+    .card { background:var(--white); border:1px solid var(--card-border); border-radius:var(--radius); padding:1.5rem; box-shadow:var(--shadow); }
+    .section-title { font-size:1.6rem; font-weight:700; color:var(--text-dark); margin-bottom:1rem; }
+
+    /* ── RESPONSIVE ── */
+    @media (max-width: 768px) {
+      .nav-links { display:none; }
+      main { padding: 1rem; }
+    }
+  </style>
+  {% block head %}{% endblock %}
+</head>
+<body>
+
+<!-- ── NAVBAR ── -->
+<nav class="navbar">
+  <a class="nav-brand" href="{{ url_for('dashboard.home') }}">
+    <svg viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M20 3L5 9V20C5 28.5 11.8 36.3 20 38C28.2 36.3 35 28.5 35 20V9L20 3Z" fill="rgba(255,255,255,.25)"/>
+      <path d="M14 20L18 24L26 16" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+    <span>SmartPay</span>
+  </a>
+
+  <div class="nav-links">
+    <a href="{{ url_for('dashboard.home') }}">Home</a>
+    <a href="{{ url_for('shop.index') }}">Shop</a>
+    <a href="{{ url_for('bnpl.repayments') }}">My Plans</a>
+    <a href="#about">About Us</a>
+  </div>
+
+  <div class="nav-right">
+    <a href="{{ url_for('shop.cart') }}" class="cart-btn">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/>
+        <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/>
+      </svg>
+      <span class="cart-badge" id="cartCount">
+        {% set cart = session.get('cart', []) %}
+        {{ cart | sum(attribute='quantity') if cart else 0 }}
+      </span>
+    </a>
+    {% if current_user.is_authenticated %}
+      <div class="avatar" title="{{ current_user.id }}">
+        SP
+      </div>
+      <a href="{{ url_for('auth.logout') }}" class="logout-btn">Logout</a>
+    {% endif %}
+  </div>
+</nav>
+
+<!-- ── FLASH MESSAGES ── -->
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% if messages %}
+    <div class="flash-container">
+      {% for category, message in messages %}
+        <div class="flash flash-{{ category }}">
+          {% if category == 'success' %}✅{% elif category == 'error' %}❌{% else %}ℹ️{% endif %}
+          {{ message }}
+          <button class="flash-close" onclick="this.parentElement.remove()">✕</button>
+        </div>
+      {% endfor %}
+    </div>
+  {% endif %}
+{% endwith %}
+
+<!-- ── CONTENT ── -->
+<main>
+  {% block content %}{% endblock %}
+</main>
+
+<!-- ── FOOTER ── -->
+<footer>
+  <strong>SmartPay</strong> &copy; 2025 &nbsp;|&nbsp; PVG COEM Pune &nbsp;|&nbsp; AI &amp; Data Science
+</footer>
+
+<script src="{{ url_for('static', filename='js/main.js') }}"></script>
+
+<!-- ══════════════════════════════════════════════════
+     SMARTBOT — Floating AI Assistant
+══════════════════════════════════════════════════ -->
+<style>
+  /* FAB */
+  .sb-fab {
+    position:fixed; bottom:28px; right:28px; z-index:9999;
+    width:58px; height:58px; border-radius:50%;
+    background:#606F49; border:none; cursor:pointer;
+    display:flex; align-items:center; justify-content:center;
+    font-size:1.45rem;
+    box-shadow:0 4px 20px rgba(44,51,32,.45);
+    transition:transform .2s, box-shadow .2s;
+  }
+  .sb-fab:hover { transform:scale(1.1); box-shadow:0 8px 28px rgba(44,51,32,.55); }
+  .sb-fab::before {
+    content:''; position:absolute; inset:-5px; border-radius:50%;
+    border:2px solid rgba(181,201,154,.5);
+    animation:sbRing 2s ease-out infinite;
+  }
+  @keyframes sbRing{0%{transform:scale(1);opacity:.8}100%{transform:scale(1.6);opacity:0}}
+  .sb-notif {
+    position:absolute; top:2px; right:2px;
+    width:12px; height:12px; border-radius:50%;
+    background:#e74c3c; border:2px solid #fff;
+  }
+  .sb-tooltip {
+    position:absolute; bottom:68px; right:0;
+    background:#2C3320; color:#CFE1B9;
+    padding:.35rem .8rem; border-radius:8px;
+    font-size:.78rem; font-family:'DM Sans',sans-serif; font-weight:500;
+    white-space:nowrap; opacity:0; pointer-events:none;
+    transition:opacity .2s; transform:translateY(4px);
+  }
+  .sb-fab:hover .sb-tooltip { opacity:1; transform:translateY(0); }
+
+  /* Panel */
+  .sb-panel {
+    position:fixed; bottom:100px; right:28px; z-index:9998;
+    width:380px; height:500px; border-radius:20px;
+    background:#fff; box-shadow:0 12px 48px rgba(44,51,32,.25);
+    display:flex; flex-direction:column;
+    transform:translateY(20px) scale(.95); opacity:0;
+    pointer-events:none;
+    transition:transform .3s cubic-bezier(.34,1.56,.64,1), opacity .25s;
+    overflow:hidden;
+  }
+  .sb-panel.open { transform:translateY(0) scale(1); opacity:1; pointer-events:all; }
+
+  /* Header */
+  .sb-header {
+    background:linear-gradient(135deg,#606F49,#849669);
+    padding:1rem 1.2rem; display:flex; align-items:center; gap:.75rem;
+    flex-shrink:0;
+  }
+  .sb-avatar { width:38px; height:38px; border-radius:50%; background:rgba(255,255,255,.2); display:flex; align-items:center; justify-content:center; font-size:1.2rem; }
+  .sb-title { flex:1; }
+  .sb-title h4 { color:#fff; font-family:'Cormorant Garamond',serif; font-size:1.1rem; font-weight:700; margin:0; }
+  .sb-title p  { color:rgba(255,255,255,.75); font-size:.72rem; margin:0; font-family:'DM Sans',sans-serif; }
+  .sb-close { background:none; border:none; color:rgba(255,255,255,.7); font-size:1.2rem; cursor:pointer; padding:.2rem; transition:color .2s; font-family:'DM Sans',sans-serif; }
+  .sb-close:hover { color:#fff; }
+
+  /* Quick chips */
+  .sb-chips { padding:.7rem 1rem; display:flex; flex-wrap:wrap; gap:.4rem; border-bottom:1px solid #eee; flex-shrink:0; }
+  .sb-chip { background:#F0F5E8; color:#606F49; border:1px solid #D6E4C8; padding:.3rem .75rem; border-radius:20px; font-size:.73rem; font-weight:600; cursor:pointer; font-family:'DM Sans',sans-serif; transition:all .2s; }
+  .sb-chip:hover { background:#606F49; color:#fff; border-color:#606F49; }
+
+  /* Messages */
+  .sb-messages { flex:1; overflow-y:auto; padding:1rem; display:flex; flex-direction:column; gap:.75rem; scroll-behavior:smooth; }
+  .sb-messages::-webkit-scrollbar { width:4px; }
+  .sb-messages::-webkit-scrollbar-thumb { background:#D6E4C8; border-radius:4px; }
+
+  .sb-msg { display:flex; flex-direction:column; max-width:82%; animation:msgIn .25s ease; }
+  @keyframes msgIn { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
+  .sb-msg.bot  { align-self:flex-start; }
+  .sb-msg.user { align-self:flex-end; }
+
+  .sb-bubble {
+    padding:.6rem .9rem; border-radius:14px; font-size:.84rem;
+    font-family:'DM Sans',sans-serif; line-height:1.5;
+  }
+  .sb-msg.bot  .sb-bubble { background:#F0F5E8; color:#2C3320; border:1px solid #D6E4C8; border-bottom-left-radius:4px; }
+  .sb-msg.user .sb-bubble { background:#606F49; color:#fff; border-bottom-right-radius:4px; }
+  .sb-time { font-size:.65rem; color:#9ca3af; margin-top:.2rem; font-family:'DM Sans',sans-serif; }
+  .sb-msg.user .sb-time { text-align:right; }
+
+  .sb-typing .sb-bubble::after { content:'●●●'; animation:dots 1.2s step-start infinite; letter-spacing:3px; font-size:.8rem; color:#849669; }
+  @keyframes dots { 0%,100%{opacity:1} 33%{opacity:.4} 66%{opacity:.7} }
+
+  /* Input */
+  .sb-input-row { padding:.8rem 1rem; border-top:1px solid #eee; display:flex; gap:.6rem; flex-shrink:0; }
+  .sb-input { flex:1; border:1.5px solid #D6E4C8; border-radius:12px; padding:.55rem .9rem; font-family:'DM Sans',sans-serif; font-size:.88rem; outline:none; transition:border-color .2s; color:#2C3320; }
+  .sb-input:focus { border-color:#849669; }
+  .sb-send { background:#606F49; color:#fff; border:none; border-radius:12px; padding:.55rem .95rem; cursor:pointer; font-size:.9rem; transition:background .2s; }
+  .sb-send:hover { background:#728359; }
+
+  @media(max-width:440px){.sb-panel{width:calc(100vw - 24px);right:12px;}}
+</style>
+
+<!-- FAB button -->
+<button class="sb-fab" id="sbFab" aria-label="Open SmartBot">
+  🤖
+  <div class="sb-notif" id="sbNotif"></div>
+  <div class="sb-tooltip">SmartBot</div>
+</button>
+
+<!-- Chat panel -->
+<div class="sb-panel" id="sbPanel">
+  <div class="sb-header">
+    <div class="sb-avatar">🤖</div>
+    <div class="sb-title"><h4>SmartBot</h4><p>AI Financial Assistant · Online</p></div>
+    <button class="sb-close" id="sbClose">✕</button>
+  </div>
+
+  <div class="sb-chips" id="sbChips">
+    <div class="sb-chip" onclick="sbSend('How does credit scoring work?')">Credit scoring?</div>
+    <div class="sb-chip" onclick="sbSend('Is my data safe?')">Is my data safe?</div>
+    <div class="sb-chip" onclick="sbSend('What are EMI options?')">EMI options?</div>
+    <div class="sb-chip" onclick="sbSend('How to complete KYC?')">KYC guide</div>
+  </div>
+
+  <div class="sb-messages" id="sbMessages"></div>
+
+  <div class="sb-input-row">
+    <input id="sbInput" class="sb-input" type="text" placeholder="Ask me anything…" autocomplete="off">
+    <button class="sb-send" onclick="sbSend()">➤</button>
+  </div>
+</div>
+
+<script>
+(function() {
+  /* ── RESPONSES DB ── */
+  const R = {
+    greetings: {
+      t: ['hi','hello','hey','namaste','good morning','good evening','howdy'],
+      r: [
+        "Namaste! 👋 I'm SmartBot, your AI financial assistant. How can I help you today?",
+        "Hello! Welcome to SmartPay. I can help with credit scores, EMI plans, fraud protection and more!",
+        "Hi there! 😊 Ask me anything about BNPL, credit scores, or how SmartPay works!"
+      ]
+    },
+    credit_score: {
+      t: ['credit score','credit','score','creditworthiness','eligible','qualify','approval'],
+      r: [
+        "Your credit score (300–900) is calculated using our Logistic Regression ML model analysing: payment history, income, existing loans, KYC status and account age. Score above 650 gets you approved! 📊",
+        "A good score (700+) means better EMI options and lower processing fees. Pay your EMIs on time to improve it! ⭐",
+        "We use explainable AI — so you always know why you were approved or declined. No black-box decisions! 🧠"
+      ]
+    },
+    fraud: {
+      t: ['fraud','safe','security','protection','scam','hack','secure','data'],
+      r: [
+        "SmartPay uses Isolation Forest ML to detect fraud in real-time! Every transaction is analysed for: unusual amounts, suspicious timing, location anomalies and device changes. 🛡",
+        "We achieve 99.2% fraud detection accuracy. Your money and data are protected by AES-256 encryption and continuous AI monitoring. 🔒",
+        "Your data never leaves our encrypted servers. We are GDPR-aligned and use deepfake detection to prevent identity theft. 🔐"
+      ]
+    },
+    emi: {
+      t: ['emi','installment','payment plan','split','pay later','bnpl','monthly'],
+      r: [
+        "SmartPay offers 3 EMI tenures: 3 months (0% fee for excellent credit), 6 months (2% fee), 9 months (3% fee). Our KNN + Decision Tree model recommends the best plan for you! 📅",
+        "BNPL = Buy Now Pay Later! Add items to cart → Pay with SmartPay → instant AI credit check → pay in easy EMIs. Simple! ✨",
+        "You can view and pay your EMIs anytime from My Plans. Set reminders so you never miss a payment! 💳"
+      ]
+    },
+    kyc: {
+      t: ['kyc','verification','identity','aadhaar','pan','document','selfie','face'],
+      r: [
+        "Our KYC uses OpenCV-powered deepfake detection! We verify: PAN card, Aadhaar number, live selfie with liveness detection and face matching. Prevents identity fraud. 🔍",
+        "KYC takes under 2 minutes. Make sure you're in good lighting for the selfie — our AI checks for liveness to stop photo spoofing! 📸"
+      ]
+    },
+    how_to_use: {
+      t: ['how','use','start','begin','steps','guide','tutorial','getting started'],
+      r: [
+        "Getting started: 1️⃣ Create account → 2️⃣ Complete KYC → 3️⃣ Sign digital agreement → 4️⃣ Browse 40+ products → 5️⃣ Add to cart → 6️⃣ Choose BNPL → 7️⃣ Get instant AI approval → 8️⃣ Pay in EMIs! 🚀"
+      ]
+    },
+    interest: {
+      t: ['interest','fee','charge','cost','free','zero','0%'],
+      r: [
+        "Great news! Credit score above 750 = 0% fee on 3-month plans! Otherwise fees are 2–4% depending on tenure. Zero hidden charges, ever. 💚",
+        "SmartPay is transparent about all charges. You'll see the exact fee before confirming any BNPL plan. ✅"
+      ]
+    },
+    shop: {
+      t: ['shop','product','buy','purchase','item','category','electronics','fashion','book'],
+      r: [
+        "SmartPay has 40+ products across 5 categories: Electronics, Fashion, Books, Home & Kitchen, and Sports! All BNPL-eligible. 🛒",
+        "All products show savings, EMI estimates and discount badges. Add to cart and pay with SmartPay BNPL for 0% interest! 🏷"
+      ]
+    }
+  };
+  const DEFAULTS = [
+    "I'm not sure about that. Try asking about: credit scores, EMI plans, KYC, fraud protection, or how SmartPay works! 😊",
+    "Hmm, I didn't quite get that. I can help with: BNPL payments, credit eligibility, security features or account setup! 🤖",
+    "Great question! For detailed support, contact our team. Meanwhile, ask me about any SmartPay feature! 💬"
+  ];
+
+  const WELCOME = "Hi! I'm SmartBot 🤖 Your AI financial assistant.\n\nAsk me about credit scores, EMI plans, fraud protection, or how SmartPay works!";
+
+  /* ── STATE ── */
+  let open = false, msgs = [], notifCleared = false;
+  const fab = document.getElementById('sbFab');
+  const panel = document.getElementById('sbPanel');
+  const notif = document.getElementById('sbNotif');
+  const msgBox = document.getElementById('sbMessages');
+  const input = document.getElementById('sbInput');
+  const chips = document.getElementById('sbChips');
+
+  /* ── OPEN / CLOSE ── */
+  fab.addEventListener('click', toggle);
+  document.getElementById('sbClose').addEventListener('click', () => setOpen(false));
+
+  function toggle() { setOpen(!open); }
+  function setOpen(v) {
+    open = v;
+    panel.classList.toggle('open', v);
+    if (v && msgs.length === 0) { botMsg(WELCOME); chips.style.display = ''; }
+    if (v && !notifCleared) { notifCleared = true; if(notif) notif.style.display='none'; }
+    if (v) { chips.style.display=''; setTimeout(()=>input.focus(),300); }
+  }
+
+  /* ── MESSAGES ── */
+  function ts() {
+    const d=new Date(); return d.getHours().toString().padStart(2,'0')+':'+d.getMinutes().toString().padStart(2,'0');
+  }
+  function addMsg(text, who) {
+    if (msgs.length >= 50) { msgs.shift(); msgBox.firstChild && msgBox.removeChild(msgBox.firstChild); }
+    msgs.push({text,who});
+    const wrap = document.createElement('div'); wrap.className = 'sb-msg ' + who;
+    const bub = document.createElement('div');  bub.className = 'sb-bubble';
+    bub.textContent = text;
+    const t = document.createElement('div'); t.className = 'sb-time'; t.textContent = ts();
+    wrap.appendChild(bub); wrap.appendChild(t);
+    msgBox.appendChild(wrap);
+    msgBox.scrollTop = msgBox.scrollHeight;
+    return wrap;
+  }
+  function botMsg(text) {
+    // Hide chips after first real interaction
+    chips.style.display = 'none';
+    // Typing indicator
+    const typing = document.createElement('div'); typing.className = 'sb-msg bot sb-typing';
+    const tbub = document.createElement('div'); tbub.className = 'sb-bubble'; tbub.innerHTML = '&nbsp;';
+    typing.appendChild(tbub); msgBox.appendChild(typing); msgBox.scrollTop = msgBox.scrollHeight;
+    setTimeout(() => {
+      msgBox.removeChild(typing);
+      addMsg(text, 'bot');
+    }, 900 + Math.random()*400);
+  }
+
+  /* ── MATCH RESPONSE ── */
+  function getReply(msg) {
+    const m = msg.toLowerCase();
+    for (const key of Object.keys(R)) {
+      if (R[key].t.some(t => m.includes(t))) {
+        const arr = R[key].r; return arr[Math.floor(Math.random()*arr.length)];
+      }
+    }
+    return DEFAULTS[Math.floor(Math.random()*DEFAULTS.length)];
+  }
+
+  /* ── SEND ── */
+  window.sbSend = function(override) {
+    const text = (override || input.value).trim();
+    if (!text) return;
+    if (!open) setOpen(true);
+    addMsg(text, 'user');
+    input.value = '';
+    chips.style.display = 'none';
+    botMsg(getReply(text));
+  };
+  input.addEventListener('keydown', e => { if (e.key === 'Enter') sbSend(); });
+})();
+</script>
+</body>
+</html>

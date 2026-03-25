@@ -1,0 +1,169 @@
+{% extends "base.html" %}
+{% block title %}My Plans{% endblock %}
+{% block head %}
+<style>
+  .rep-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:2rem;flex-wrap:wrap;gap:1rem;}
+  .rep-header h1{font-size:2rem;font-weight:700;color:var(--text-dark);}
+  .summary-pills{display:flex;gap:.8rem;flex-wrap:wrap;}
+  .pill-card{background:#fff;border:1px solid var(--card-border);border-radius:12px;padding:.7rem 1.2rem;text-align:center;box-shadow:0 2px 8px rgba(96,111,73,.06);}
+  .pill-val{font-family:'Cormorant Garamond',serif;font-size:1.4rem;font-weight:700;color:var(--text-dark);}
+  .pill-key{font-size:.72rem;color:#9ca3af;font-weight:600;}
+
+  .plans-section{margin-bottom:2rem;}
+  .plans-section h2{font-size:1.2rem;font-weight:700;color:var(--text-dark);margin-bottom:1rem;}
+  .plan-row{background:#fff;border:1px solid var(--card-border);border-radius:12px;padding:1.2rem 1.4rem;margin-bottom:.8rem;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.8rem;box-shadow:0 2px 8px rgba(96,111,73,.05);}
+  .pr-left{display:flex;align-items:center;gap:1rem;}
+  .pr-icon{width:40px;height:40px;border-radius:10px;background:var(--bg);display:flex;align-items:center;justify-content:center;font-size:1.1rem;border:1px solid var(--card-border);}
+  .pr-name{font-weight:700;font-size:.9rem;color:var(--text-dark);}
+  .pr-sub{font-size:.75rem;color:#9ca3af;margin-top:.1rem;}
+  .pr-meta{display:flex;gap:1.5rem;flex-wrap:wrap;}
+  .pr-meta-item{text-align:center;}
+  .pr-meta-val{font-weight:700;font-size:.88rem;color:var(--text-dark);}
+  .pr-meta-key{font-size:.7rem;color:#9ca3af;}
+  .st{display:inline-block;padding:.2rem .6rem;border-radius:7px;font-size:.72rem;font-weight:800;}
+  .st-active{background:#eafaf1;color:#1e8449;} .st-completed{background:#eaf4fc;color:#1a5276;} .st-defaulted{background:#fdedec;color:#922b21;}
+  .st-paid{background:#eaf4fc;color:#1a5276;} .st-pending{background:#fef9e7;color:#9a6f00;} .st-overdue{background:#fdedec;color:#922b21;} .st-partial{background:#f5eef8;color:#7d3c98;}
+
+  /* Repayments table */
+  .rep-card{background:#fff;border:1px solid var(--card-border);border-radius:14px;box-shadow:0 2px 12px rgba(96,111,73,.07);overflow:hidden;margin-bottom:2rem;}
+  .rep-card-header{padding:1.1rem 1.4rem;border-bottom:1px solid var(--card-border);display:flex;align-items:center;justify-content:space-between;}
+  .rep-card-header h3{font-size:.9rem;font-weight:700;color:var(--text-dark);}
+  table{width:100%;border-collapse:collapse;}
+  thead th{padding:.7rem 1.2rem;text-align:left;font-size:.72rem;text-transform:uppercase;letter-spacing:.06em;color:#9ca3af;font-weight:700;background:var(--bg);border-bottom:1px solid var(--card-border);}
+  tbody td{padding:.85rem 1.2rem;font-size:.85rem;color:var(--text-dark);border-bottom:1px solid var(--card-border);}
+  tbody tr:last-child td{border:none;}
+  tbody tr:hover{background:#fafcf8;}
+  .pay-btn{padding:.4rem 1rem;background:var(--primary-dark);color:#fff;border:none;border-radius:8px;font-family:'DM Sans',sans-serif;font-size:.78rem;font-weight:700;cursor:pointer;transition:all .2s;}
+  .pay-btn:hover{background:var(--primary-mid);}
+  .pay-btn:disabled{background:var(--card-border);color:#9ca3af;cursor:not-allowed;}
+  .overdue-row{background:#fff8f7;}
+  .empty-state{text-align:center;padding:2.5rem;color:#9ca3af;font-size:.9rem;}
+  .toast{position:fixed;bottom:2rem;right:2rem;background:#27AE60;color:#fff;padding:.8rem 1.4rem;border-radius:12px;font-size:.88rem;font-weight:600;box-shadow:0 4px 20px rgba(0,0,0,.2);z-index:9999;transform:translateY(80px);opacity:0;transition:all .35s cubic-bezier(.4,0,.2,1);}
+  .toast.show{transform:translateY(0);opacity:1;}
+  .late-fee{font-size:.72rem;color:#C0392B;font-weight:700;}
+  @media(max-width:768px){table thead{display:none;}tbody tr{display:block;border-bottom:2px solid var(--card-border);}tbody td{display:flex;justify-content:space-between;align-items:center;padding:.6rem 1rem;border:none;font-size:.8rem;}}
+</style>
+{% endblock %}
+{% block content %}
+
+<div class="rep-header">
+  <h1>💳 My BNPL Plans</h1>
+  <div class="summary-pills">
+    <div class="pill-card">
+      <div class="pill-val">{{ plans|length }}</div>
+      <div class="pill-key">Total Plans</div>
+    </div>
+    <div class="pill-card">
+      <div class="pill-val">{{ plans|selectattr('status','eq','active')|list|length }}</div>
+      <div class="pill-key">Active</div>
+    </div>
+    <div class="pill-card">
+      <div class="pill-val">{{ repayments|selectattr('status','eq','pending')|list|length }}</div>
+      <div class="pill-key">Pending EMIs</div>
+    </div>
+    <div class="pill-card">
+      <div class="pill-val" style="color:var(--danger)">{{ repayments|selectattr('status','eq','overdue')|list|length }}</div>
+      <div class="pill-key">Overdue</div>
+    </div>
+  </div>
+</div>
+
+{% if plans %}
+<div class="plans-section">
+  <h2>Your Plans</h2>
+  {% for plan in plans %}
+  <div class="plan-row">
+    <div class="pr-left">
+      <div class="pr-icon">💳</div>
+      <div>
+        <div class="pr-name">Plan #{{ plan.id }}</div>
+        <div class="pr-sub">{{ plan.tenure_months }} months • Started {{ plan.start_date.strftime('%d %b %Y') }}</div>
+      </div>
+    </div>
+    <div class="pr-meta">
+      <div class="pr-meta-item"><div class="pr-meta-val">₹{{ "{:,.0f}".format(plan.total_amount|float) }}</div><div class="pr-meta-key">Total</div></div>
+      <div class="pr-meta-item"><div class="pr-meta-val">₹{{ "{:,.0f}".format(plan.emi_amount|float) }}/mo</div><div class="pr-meta-key">EMI</div></div>
+      <div class="pr-meta-item"><div class="pr-meta-val">{{ plan.end_date.strftime('%d %b %Y') }}</div><div class="pr-meta-key">Ends</div></div>
+    </div>
+    <span class="st st-{{ plan.status }}">{{ plan.status|upper }}</span>
+  </div>
+  {% endfor %}
+</div>
+
+<div class="rep-card">
+  <div class="rep-card-header">
+    <h3>EMI Schedule</h3>
+    <span style="font-size:.8rem;color:#9ca3af;">{{ repayments|length }} instalments total</span>
+  </div>
+  {% if repayments %}
+  <table>
+    <thead>
+      <tr>
+        <th>EMI #</th>
+        <th>Plan</th>
+        <th>Due Date</th>
+        <th>Amount Due</th>
+        <th>Late Fee</th>
+        <th>Status</th>
+        <th>Action</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for r in repayments %}
+      <tr {% if r.status == 'overdue' %}class="overdue-row"{% endif %} id="row-{{ r.id }}">
+        <td><strong>#{{ loop.index }}</strong></td>
+        <td>Plan #{{ r.plan_id }}</td>
+        <td>{{ r.due_date.strftime('%d %b %Y') }}</td>
+        <td>₹{{ "{:,.2f}".format(r.amount_due|float) }}</td>
+        <td>
+          {% if r.late_fee|float > 0 %}
+            <span class="late-fee">+₹{{ "{:,.2f}".format(r.late_fee|float) }}</span>
+          {% else %}—{% endif %}
+        </td>
+        <td><span class="st st-{{ r.status }}">{{ r.status|upper }}</span></td>
+        <td>
+          {% if r.status == 'paid' %}
+            <button class="pay-btn" disabled>Paid ✓</button>
+          {% else %}
+            <button class="pay-btn" onclick="payEMI({{ r.id }})">Pay Now</button>
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div class="empty-state">No EMIs scheduled yet.</div>
+  {% endif %}
+</div>
+
+{% else %}
+<div class="empty-state" style="padding:4rem;background:#fff;border:1px solid var(--card-border);border-radius:14px;box-shadow:0 2px 12px rgba(96,111,73,.07);">
+  <div style="font-size:3rem;margin-bottom:1rem;">📋</div>
+  <h2 style="font-family:'Cormorant Garamond',serif;font-size:1.8rem;margin-bottom:.5rem;">No Plans Yet</h2>
+  <p style="margin-bottom:1.5rem;color:#6b7280;">You haven't activated any BNPL plan yet. Visit the store and shop now!</p>
+  <a href="{{ url_for('shop.index') }}" style="display:inline-block;padding:.8rem 2rem;background:var(--primary-dark);color:#fff;border-radius:10px;text-decoration:none;font-weight:700;transition:all .2s;">🛍️ Visit Store</a>
+</div>
+{% endif %}
+
+<div class="toast" id="toast"></div>
+
+<script>
+  function payEMI(repId) {
+    if(!confirm('Confirm EMI payment?')) return;
+    fetch(`/bnpl/pay-emi/${repId}`, {method:'POST', headers:{'Content-Type':'application/json'}})
+    .then(r=>r.json())
+    .then(d=>{
+      if(d.success){
+        showToast('✅ EMI paid successfully!');
+        const btn = document.querySelector(`#row-${repId} .pay-btn`);
+        if(btn){ btn.disabled=true; btn.textContent='Paid ✓'; }
+        const st = document.querySelector(`#row-${repId} .st`);
+        if(st){ st.className='st st-paid'; st.textContent='PAID'; }
+        document.querySelector(`#row-${repId}`).classList.remove('overdue-row');
+      } else { alert(d.message); }
+    });
+  }
+  function showToast(m){ const t=document.getElementById('toast'); t.textContent=m; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),2500); }
+</script>
+{% endblock %}

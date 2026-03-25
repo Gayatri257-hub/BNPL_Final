@@ -1,0 +1,220 @@
+﻿{% extends "base.html" %}
+{% block title %}Admin Dashboard — SmartPay{% endblock %}
+{% block head %}
+<style>
+  .admin-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:2rem;flex-wrap:wrap;gap:1rem;}
+  .admin-header h1{font-size:2rem;font-weight:700;color:var(--text-dark);}
+  .admin-badge{background:#fdedec;border:1px solid #f1948a;color:#922b21;font-size:.75rem;font-weight:700;padding:.25rem .75rem;border-radius:20px;letter-spacing:.06em;}
+
+  .stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:1.2rem;margin-bottom:2rem;}
+  .stat-card{background:#fff;border:1px solid var(--card-border);border-radius:14px;padding:1.4rem;box-shadow:0 2px 12px rgba(96,111,73,.07);}
+  .sc-icon{font-size:1.8rem;margin-bottom:.7rem;}
+  .sc-val{font-family:'Cormorant Garamond',serif;font-size:2rem;font-weight:700;color:var(--text-dark);}
+  .sc-key{font-size:.78rem;color:#9ca3af;font-weight:600;margin-top:.2rem;}
+
+  .admin-section{margin-bottom:2rem;}
+  .admin-section h2{font-size:1.1rem;font-weight:700;color:var(--text-dark);margin-bottom:1rem;}
+  .admin-card{background:#fff;border:1px solid var(--card-border);border-radius:14px;box-shadow:0 2px 12px rgba(96,111,73,.07);overflow:hidden;}
+  table{width:100%;border-collapse:collapse;}
+  thead th{padding:.7rem 1.1rem;text-align:left;font-size:.7rem;text-transform:uppercase;letter-spacing:.06em;color:#9ca3af;font-weight:700;background:var(--bg);border-bottom:1px solid var(--card-border);}
+  tbody td{padding:.8rem 1.1rem;font-size:.83rem;color:var(--text-dark);border-bottom:1px solid var(--card-border);}
+  tbody tr:last-child td{border:none;}
+  tbody tr:hover{background:#fafcf8;}
+
+  .st{display:inline-block;padding:.18rem .55rem;border-radius:6px;font-size:.7rem;font-weight:800;}
+  .st-verified{background:#eafaf1;color:#1e8449;} .st-pending{background:#fef9e7;color:#9a6f00;}
+  .st-failed{background:#fdedec;color:#922b21;} .st-resolved{background:#eaf4fc;color:#1a5276;}
+  .st-flagged{background:#fdedec;color:#922b21;} .st-active{background:#eafaf1;color:#1e8449;}
+
+  .fraud-score{font-family:'Cormorant Garamond',serif;font-size:1.1rem;font-weight:700;}
+  .fs-low{color:#27AE60;} .fs-med{color:#D4A017;} .fs-high{color:#C0392B;}
+
+  .action-btn{padding:.3rem .8rem;font-size:.72rem;font-weight:700;border-radius:7px;border:none;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .2s;}
+  .btn-blacklist{background:#fdedec;color:#922b21;} .btn-blacklist:hover{background:#C0392B;color:#fff;}
+  .btn-resolve{background:#eafaf1;color:#1e8449;} .btn-resolve:hover{background:#27AE60;color:#fff;}
+  .btn-view{background:var(--bg);color:var(--primary-dark);border:1px solid var(--card-border);} .btn-view:hover{background:var(--primary-dark);color:#fff;}
+
+  .search-bar{width:100%;padding:.65rem 1rem;border:1.5px solid var(--card-border);border-radius:10px;font-family:'DM Sans',sans-serif;font-size:.88rem;color:var(--text-dark);background:#fff;outline:none;margin-bottom:1rem;transition:border-color .2s;}
+  .search-bar:focus{border-color:var(--primary-mid);}
+
+  @media(max-width:1024px){.stats-grid{grid-template-columns:1fr 1fr;}}
+  @media(max-width:640px){.stats-grid{grid-template-columns:1fr 1fr;}}
+</style>
+{% endblock %}
+{% block content %}
+
+<div class="admin-header">
+  <div>
+    <h1>🛡️ Admin Dashboard</h1>
+    <p style="color:#6b7280;font-size:.88rem;margin-top:.2rem;">SmartPay control center — real-time platform oversight</p>
+  </div>
+  <span class="admin-badge">⚠️ ADMIN ONLY</span>
+</div>
+
+<!-- Stats -->
+<div class="stats-grid">
+  <div class="stat-card">
+    <div class="sc-icon">👥</div>
+    <div class="sc-val">{{ total_users }}</div>
+    <div class="sc-key">Total Users</div>
+  </div>
+  <div class="stat-card">
+    <div class="sc-icon">📋</div>
+    <div class="sc-val">{{ active_plans }}</div>
+    <div class="sc-key">Active Plans</div>
+  </div>
+  <div class="stat-card">
+    <div class="sc-icon" style="color:var(--danger)">🚨</div>
+    <div class="sc-val" style="color:var(--danger)">{{ flagged_transactions }}</div>
+    <div class="sc-key">Flagged Transactions</div>
+  </div>
+  <div class="stat-card">
+    <div class="sc-icon">₹</div>
+    <div class="sc-val">{{ total_transactions }}</div>
+    <div class="sc-key">Total Transactions</div>
+  </div>
+</div>
+
+<!-- Fraud Logs -->
+<div class="admin-section">
+  <h2>🔍 Fraud Logs</h2>
+  <div class="admin-card">
+    <table>
+      <thead>
+        <tr>
+          <th>Log ID</th>
+          <th>User ID</th>
+          <th>Fraud Type</th>
+          <th>Score</th>
+          <th>Model</th>
+          <th>Flagged At</th>
+          <th>Status</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% if fraud_logs is defined and fraud_logs %}
+          {% for log in fraud_logs %}
+          <tr>
+            <td>#{{ log.id }}</td>
+            <td>User #{{ log.user_id }}</td>
+            <td>{{ log.fraud_type or 'Unknown' }}</td>
+            <td class="fraud-score {% set s=log.fraud_score|float %}{% if s < 0.3 %}fs-low{% elif s < 0.7 %}fs-med{% else %}fs-high{% endif %}">{{ "%.3f"|format(log.fraud_score|float) }}</td>
+            <td>{{ log.detection_model or '—' }}</td>
+            <td>{{ log.flagged_at.strftime('%d %b %Y %H:%M') if log.flagged_at else '—' }}</td>
+            <td><span class="st {% if log.resolved %}st-resolved{% else %}st-flagged{% endif %}">{% if log.resolved %}RESOLVED{% else %}OPEN{% endif %}</span></td>
+            <td>
+              {% if not log.resolved %}
+              <button class="action-btn btn-resolve" onclick="resolveLog({{ log.id }})">✅ Resolve</button>
+              {% else %}
+              <button class="action-btn btn-view">View</button>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        {% else %}
+          <!-- Placeholder rows for demo -->
+          {% for i in range(1, 6) %}
+          <tr>
+            <td>#{{ i }}</td>
+            <td>User #{{ i * 7 }}</td>
+            <td>{{ ['Velocity Anomaly', 'Device Mismatch', 'Location Outlier', 'Synthetic Identity', 'Card Testing'][loop.index0 % 5] }}</td>
+            <td class="fraud-score {% if loop.index0 < 2 %}fs-high{% elif loop.index0 < 4 %}fs-med{% else %}fs-low{% endif %}">{{ ['0.912', '0.847', '0.621', '0.445', '0.189'][loop.index0 % 5] }}</td>
+            <td>{{ ['Isolation Forest', 'Random Forest', 'Logistic Regression'][loop.index0 % 3] }}</td>
+            <td>{{ '25 Mar 2025 0' ~ (loop.index0 + 1) ~ ':14' }}</td>
+            <td><span class="st {% if loop.index0 < 3 %}st-flagged{% else %}st-resolved{% endif %}">{% if loop.index0 < 3 %}OPEN{% else %}RESOLVED{% endif %}</span></td>
+            <td>{% if loop.index0 < 3 %}<button class="action-btn btn-resolve">✅ Resolve</button>{% else %}<button class="action-btn btn-view">View</button>{% endif %}</td>
+          </tr>
+          {% endfor %}
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Users Table -->
+<div class="admin-section">
+  <h2>👤 All Users</h2>
+  <input class="search-bar" type="text" placeholder="Search users by ID, city or KYC status…" oninput="filterUsers(this.value)">
+  <div class="admin-card">
+    <table id="usersTable">
+      <thead>
+        <tr>
+          <th>User ID</th>
+          <th>Name</th>
+          <th>Email</th>
+          <th>Credit Score</th>
+          <th>Trust</th>
+          <th>KYC Status</th>
+          <th>Plans</th>
+          <th>Account Created</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% if all_users %}
+          {% for u in all_users %}
+          <tr class="user-row" data-info="{{ u.id }} {{ u.name|lower }} {{ u.kyc_status }} {{ u.city|lower }}">
+            <td><strong>#{{ u.id }}</strong></td>
+            <td>{{ u.name }}</td>
+            <td style="font-size:.78rem;color:#7a8a68;">{{ u.email[:28] }}{% if u.email|length > 28 %}…{% endif %}</td>
+            <td><span style="font-family:'Cormorant Garamond',serif;font-size:1.1rem;font-weight:700;color:{% if u.credit_score >= 700 %}#27AE60{% elif u.credit_score >= 550 %}#D4A017{% else %}#C0392B{% endif %}">{{ u.credit_score }}</span></td>
+            <td>{{ u.trust_score }}/100</td>
+            <td><span class="st st-{{ u.kyc_status }}">{{ u.kyc_status|upper }}</span></td>
+            <td>{{ u.bnpl_plans|length }}</td>
+            <td>{{ u.created_at.strftime('%d %b %Y') }}</td>
+            <td>
+              {% if not u.is_blacklisted %}
+              <button class="action-btn btn-blacklist" onclick="blacklist({{ u.id }}, 'blacklist')">🚫 Blacklist</button>
+              {% else %}
+              <button class="action-btn btn-resolve" onclick="blacklist({{ u.id }}, 'unblacklist')">✅ Reinstate</button>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        {% else %}
+          <!-- Demo rows -->
+          {% for i in range(1, 9) %}
+          <tr class="user-row" data-info="user {{ i }} pune verified">
+            <td><strong>#{{ i }}</strong></td>
+            <td>{{ ['Pune', 'Mumbai', 'Nashik', 'Aurangabad', 'Nagpur', 'Kolhapur', 'Solapur', 'Satara'][loop.index0 % 8] }}</td>
+            <td><span style="font-family:'Cormorant Garamond',serif;font-size:1.1rem;font-weight:700;color:{% if loop.index0 < 3 %}#27AE60{% elif loop.index0 < 6 %}#D4A017{% else %}#C0392B{% endif %}">{{ [780, 745, 712, 680, 635, 601, 498, 410][loop.index0 % 8] }}</span></td>
+            <td>{{ [98, 92, 87, 79, 74, 68, 55, 40][loop.index0 % 8] }}/100</td>
+            <td><span class="st {% if loop.index0 < 5 %}st-verified{% elif loop.index0 < 7 %}st-pending{% else %}st-failed{% endif %}">{% if loop.index0 < 5 %}VERIFIED{% elif loop.index0 < 7 %}PENDING{% else %}FAILED{% endif %}</span></td>
+            <td>{{ [3, 1, 2, 1, 0, 1, 0, 0][loop.index0 % 8] }}</td>
+            <td>{{ ['12 Jan','18 Jan','22 Jan','01 Feb','08 Feb','14 Feb','20 Feb','01 Mar'][loop.index0 % 8] }} 2025</td>
+            <td>{% if loop.index0 == 7 %}<button class="action-btn btn-resolve">✅ Reinstate</button>{% else %}<button class="action-btn btn-blacklist">🚫 Blacklist</button>{% endif %}</td>
+          </tr>
+          {% endfor %}
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+  function filterUsers(q) {
+    q = q.toLowerCase();
+    document.querySelectorAll('.user-row').forEach(r => {
+      r.style.display = r.dataset.info?.toLowerCase().includes(q) ? '' : 'none';
+    });
+  }
+  function blacklist(userId, action) {
+    const verb = action === 'blacklist' ? 'Blacklist' : 'Reinstate';
+    if (!confirm(`${verb} user #${userId}?`)) return;
+    fetch(`/admin/blacklist/${userId}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action })
+    })
+    .then(r => r.json())
+    .then(d => { if (d.success) location.reload(); else alert('Error: ' + d.message); });
+  }
+  function resolveLog(logId) {
+    if (!confirm('Mark fraud log #' + logId + ' as resolved?')) return;
+    fetch(`/admin/resolve-log/${logId}`, { method: 'POST' })
+    .then(r => r.json())
+    .then(d => { if (d.success) location.reload(); else alert('Error'); });
+  }
+</script>
+{% endblock %}

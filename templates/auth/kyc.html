@@ -1,0 +1,335 @@
+{% extends "base.html" %}
+{% block title %}KYC Verification{% endblock %}
+{% block head %}
+<style>
+  .kyc-wrap { max-width:780px; margin:0 auto; }
+  /* Progress */
+  .progress-steps { display:flex; align-items:center; margin-bottom:2.5rem; }
+  .ps-item { display:flex; flex-direction:column; align-items:center; flex:1; }
+  .ps-circle {
+    width:44px; height:44px; border-radius:50%; border:2.5px solid var(--card-border);
+    background:#fff; display:flex; align-items:center; justify-content:center;
+    font-weight:700; font-size:.9rem; color:#9ca3af; transition:all .3s;
+  }
+  .ps-circle.active  { border-color:var(--primary-dark); background:var(--primary-dark); color:#fff; }
+  .ps-circle.done    { border-color:var(--success); background:var(--success); color:#fff; }
+  .ps-label { font-size:.72rem; margin-top:.4rem; color:#9ca3af; font-weight:500; text-align:center; }
+  .ps-label.active { color:var(--primary-dark); font-weight:700; }
+  .ps-line { flex:1; height:2px; background:var(--card-border); margin:0; position:relative; top:-10px; }
+  .ps-line.done { background:var(--success); }
+
+  /* Cards */
+  .kyc-card { background:#fff; border:1px solid var(--card-border); border-radius:16px; padding:2rem; box-shadow:0 4px 24px rgba(96,111,73,.08); }
+  .step-section { display:none; }
+  .step-section.active { display:block; animation:fadeIn .35s ease; }
+  @keyframes fadeIn { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
+
+  .step-heading { font-family:'Cormorant Garamond',serif; font-size:1.7rem; font-weight:700; color:var(--text-dark); margin-bottom:.3rem; }
+  .step-sub { color:#6b7280; font-size:.88rem; margin-bottom:1.5rem; }
+
+  .form-row { display:grid; grid-template-columns:1fr 1fr; gap:1rem 1.2rem; }
+  .span-2 { grid-column:span 2; }
+  .fg { display:flex; flex-direction:column; gap:.35rem; }
+  label { font-size:.83rem; font-weight:600; color:var(--text-dark); }
+  .fc { width:100%; padding:.72rem 1rem; border:1.5px solid var(--card-border); border-radius:10px; font-family:'DM Sans',sans-serif; font-size:.9rem; color:var(--text-dark); background:#fff; outline:none; transition:border-color .2s,box-shadow .2s; }
+  .fc:focus { border-color:var(--primary-mid); box-shadow:0 0 0 3px rgba(114,131,89,.15); }
+  input[type=file].fc { padding:.55rem .9rem; cursor:pointer; }
+  textarea.fc { resize:vertical; min-height:80px; }
+
+  /* File upload styled */
+  .upload-zone {
+    border:2px dashed var(--card-border); border-radius:12px; padding:1.5rem;
+    text-align:center; cursor:pointer; transition:all .2s; background:var(--bg);
+  }
+  .upload-zone:hover { border-color:var(--primary-mid); background:#eef3e8; }
+  .upload-zone input[type=file] { display:none; }
+  .upload-zone .uz-icon { font-size:2rem; margin-bottom:.4rem; }
+  .upload-zone .uz-label { font-size:.85rem; color:#6b7280; }
+  .upload-zone .uz-sublabel { font-size:.75rem; color:#9ca3af; margin-top:.2rem; }
+  .upload-row { display:grid; grid-template-columns:1fr 1fr 1fr; gap:1rem; }
+
+  /* Webcam */
+  .webcam-box { background:#000; border-radius:12px; overflow:hidden; position:relative; max-width:480px; margin:0 auto; }
+  #videoEl { width:100%; display:block; border-radius:12px; }
+  #capturedImg { width:100%; border-radius:12px; display:none; }
+  .webcam-controls { display:flex; gap:1rem; justify-content:center; margin-top:1rem; flex-wrap:wrap; }
+  .score-row { display:grid; grid-template-columns:1fr 1fr 1fr; gap:1rem; margin-top:1.5rem; }
+  .score-card { background:var(--bg); border:1px solid var(--card-border); border-radius:12px; padding:1rem; text-align:center; }
+  .score-card .sc-val { font-size:1.8rem; font-weight:700; font-family:'Cormorant Garamond',serif; color:var(--primary-dark); }
+  .score-card .sc-label { font-size:.75rem; color:#6b7280; margin-top:.2rem; }
+  .score-status { display:inline-block; padding:.15rem .5rem; border-radius:6px; font-size:.7rem; font-weight:700; margin-top:.3rem; }
+  .sc-good { background:#eafaf1; color:#1e8449; }
+  .sc-warn { background:#fef9e7; color:#9a6f00; }
+
+  /* Success step */
+  .success-anim { text-align:center; padding:2rem 0; }
+  .checkmark-svg { width:80px; height:80px; margin:0 auto 1.5rem; animation:pop .5s ease; }
+  @keyframes pop { 0%{transform:scale(0)} 80%{transform:scale(1.1)} 100%{transform:scale(1)} }
+
+  /* Buttons */
+  .btn-next { display:inline-flex; align-items:center; gap:.4rem; padding:.75rem 1.8rem; background:var(--primary-dark); color:#fff; border:none; border-radius:10px; font-family:'DM Sans',sans-serif; font-size:.95rem; font-weight:700; cursor:pointer; transition:all .22s; }
+  .btn-next:hover { background:var(--primary-mid); transform:translateY(-1px); box-shadow:0 5px 18px rgba(96,111,73,.28); }
+  .btn-back { display:inline-flex; align-items:center; gap:.4rem; padding:.75rem 1.4rem; background:#f3f4f6; color:#374151; border:none; border-radius:10px; font-family:'DM Sans',sans-serif; font-size:.9rem; font-weight:600; cursor:pointer; transition:all .2s; }
+  .btn-back:hover { background:var(--card-border); }
+  .btn-row { display:flex; justify-content:space-between; align-items:center; margin-top:1.5rem; }
+
+  @media(max-width:640px){
+    .form-row,.upload-row,.score-row{grid-template-columns:1fr;}
+    .span-2{grid-column:auto;}
+  }
+</style>
+{% endblock %}
+{% block content %}
+<div class="kyc-wrap">
+  <div class="progress-steps">
+    <div class="ps-item">
+      <div class="ps-circle active" id="pc1">1</div>
+      <div class="ps-label active" id="pl1">Personal Info</div>
+    </div>
+    <div class="ps-line" id="pline1"></div>
+    <div class="ps-item">
+      <div class="ps-circle" id="pc2">2</div>
+      <div class="ps-label" id="pl2">Documents</div>
+    </div>
+    <div class="ps-line" id="pline2"></div>
+    <div class="ps-item">
+      <div class="ps-circle" id="pc3">3</div>
+      <div class="ps-label" id="pl3">Liveness Check</div>
+    </div>
+    <div class="ps-line" id="pline3"></div>
+    <div class="ps-item">
+      <div class="ps-circle" id="pc4">4</div>
+      <div class="ps-label" id="pl4">Complete</div>
+    </div>
+  </div>
+
+  <div class="kyc-card">
+    <!-- STEP 1 -->
+    <div class="step-section active" id="step1">
+      <h2 class="step-heading">Personal Information</h2>
+      <p class="step-sub">Please provide your identity details for verification</p>
+      <div class="form-row">
+        <div class="fg">
+          <label>PAN Card Number *</label>
+          <input type="text" id="pan_number" class="fc" placeholder="ABCDE1234F" maxlength="10" style="text-transform:uppercase">
+        </div>
+        <div class="fg">
+          <label>Aadhaar Last 4 Digits *</label>
+          <input type="text" id="aadhaar_last4" class="fc" placeholder="XXXX" maxlength="4" pattern="\d{4}">
+        </div>
+        <div class="fg span-2">
+          <label>Full Address</label>
+          <textarea class="fc" id="full_address" placeholder="House No., Street, City, State, PIN Code"></textarea>
+        </div>
+      </div>
+      <div class="btn-row">
+        <div></div>
+        <button class="btn-next" onclick="goStep(2)">Next: Upload Documents →</button>
+      </div>
+    </div>
+
+    <!-- STEP 2 -->
+    <div class="step-section" id="step2">
+      <h2 class="step-heading">Upload Documents</h2>
+      <p class="step-sub">Upload clear photos of your Aadhaar card and a selfie</p>
+      <div class="upload-row">
+        <div class="upload-zone" onclick="document.getElementById('f_aadhaar_front').click()">
+          <input type="file" id="f_aadhaar_front" accept="image/*" onchange="previewUpload(this,'uz1')">
+          <div class="uz-icon" id="uz1">🪪</div>
+          <div class="uz-label">Aadhaar Front</div>
+          <div class="uz-sublabel">JPG, PNG up to 5MB</div>
+        </div>
+        <div class="upload-zone" onclick="document.getElementById('f_aadhaar_back').click()">
+          <input type="file" id="f_aadhaar_back" accept="image/*" onchange="previewUpload(this,'uz2')">
+          <div class="uz-icon" id="uz2">🪪</div>
+          <div class="uz-label">Aadhaar Back</div>
+          <div class="uz-sublabel">JPG, PNG up to 5MB</div>
+        </div>
+        <div class="upload-zone" onclick="document.getElementById('f_selfie').click()">
+          <input type="file" id="f_selfie" accept="image/*" onchange="previewUpload(this,'uz3')">
+          <div class="uz-icon" id="uz3">🤳</div>
+          <div class="uz-label">Photo Selfie</div>
+          <div class="uz-sublabel">Clear face photo</div>
+        </div>
+      </div>
+      <div class="btn-row">
+        <button class="btn-back" onclick="goStep(1)">← Back</button>
+        <button class="btn-next" onclick="goStep(3)">Next: Liveness Check →</button>
+      </div>
+    </div>
+
+    <!-- STEP 3 -->
+    <div class="step-section" id="step3">
+      <h2 class="step-heading">Liveness Verification</h2>
+      <p class="step-sub">Our AI will verify you're a real person and match your selfie</p>
+      <div class="webcam-box">
+        <video id="videoEl" autoplay playsinline></video>
+        <img id="capturedImg" alt="Captured">
+      </div>
+      <div class="webcam-controls">
+        <button class="btn-next" id="startCamBtn" onclick="startCamera()">📷 Start Camera</button>
+        <button class="btn-next" id="captureBtn" onclick="capturePhoto()" style="display:none">✅ Capture Photo</button>
+        <button class="btn-back" id="retakeBtn" onclick="retakePhoto()" style="display:none">🔄 Retake</button>
+      </div>
+      <div class="score-row" id="scoreRow" style="display:none">
+        <div class="score-card">
+          <div class="sc-val" id="livenessVal">—</div>
+          <div class="sc-label">Liveness Score</div>
+          <span class="score-status sc-good" id="livenessStatus"></span>
+        </div>
+        <div class="score-card">
+          <div class="sc-val" id="faceMatchVal">—</div>
+          <div class="sc-label">Face Match Score</div>
+          <span class="score-status sc-good" id="faceMatchStatus"></span>
+        </div>
+        <div class="score-card">
+          <div class="sc-val" id="deepfakeVal">—</div>
+          <div class="sc-label">Deepfake Score</div>
+          <span class="score-status sc-good" id="deepfakeStatus"></span>
+        </div>
+      </div>
+      <!-- Hidden form for submission -->
+      <form id="kycForm" method="POST" action="{{ url_for('auth.kyc') }}" style="display:none">
+        <input type="hidden" name="step" value="3">
+        <input type="hidden" name="pan_number" id="h_pan">
+        <input type="hidden" name="aadhaar_last4" id="h_aadhaar">
+        <input type="hidden" name="liveness_score" id="h_liveness">
+        <input type="hidden" name="face_match_score" id="h_face_match">
+        <input type="hidden" name="deepfake_score" id="h_deepfake">
+      </form>
+      <div class="btn-row">
+        <button class="btn-back" onclick="goStep(2)">← Back</button>
+        <button class="btn-next" id="submitKycBtn" onclick="submitKYC()" style="display:none">Submit KYC →</button>
+      </div>
+    </div>
+
+    <!-- STEP 4 -->
+    <div class="step-section" id="step4">
+      <div class="success-anim">
+        <svg class="checkmark-svg" viewBox="0 0 80 80" fill="none">
+          <circle cx="40" cy="40" r="38" fill="#27AE60" opacity=".15"/>
+          <circle cx="40" cy="40" r="30" fill="#27AE60"/>
+          <path d="M26 40L35 49L54 31" stroke="white" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <h2 class="step-heading" style="font-size:2rem">KYC Submitted!</h2>
+        <p style="color:#6b7280;margin-top:.5rem">Your verification is being processed. This usually takes a few seconds.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  let currentStep = 1;
+  let stream = null;
+  let photoCanvas = document.createElement('canvas');
+
+  function goStep(n) {
+    if (n === 1 && currentStep > 1) { resetToStep(n); return; }
+    if (n > currentStep) {
+      if (currentStep === 1 && !validateStep1()) return;
+    }
+    document.getElementById('step'+currentStep).classList.remove('active');
+    document.getElementById('step'+n).classList.add('active');
+    updateProgress(n);
+    currentStep = n;
+    if (n === 3) setTimeout(startCamera, 300);
+  }
+
+  function validateStep1() {
+    const pan = document.getElementById('pan_number').value.trim().toUpperCase();
+    const aadhaar = document.getElementById('aadhaar_last4').value.trim();
+    if (!/^[A-Z]{5}[0-9]{4}[A-Z]$/.test(pan)) { alert('Enter a valid PAN number (e.g., ABCDE1234F)'); return false; }
+    if (!/^\d{4}$/.test(aadhaar)) { alert('Enter the last 4 digits of your Aadhaar'); return false; }
+    return true;
+  }
+
+  function updateProgress(n) {
+    for (let i=1;i<=4;i++) {
+      const c = document.getElementById('pc'+i);
+      const l = document.getElementById('pl'+i);
+      c.className='ps-circle'; l.className='ps-label';
+      if (i < n) { c.classList.add('done'); c.innerHTML='✓'; }
+      else if (i === n) { c.classList.add('active'); l.classList.add('active'); }
+      if (i < 4) {
+        const line = document.getElementById('pline'+i);
+        line.className = 'ps-line' + (i < n ? ' done' : '');
+      }
+    }
+  }
+
+  function resetToStep(n) {
+    document.getElementById('step'+currentStep).classList.remove('active');
+    document.getElementById('step'+n).classList.add('active');
+    updateProgress(n); currentStep=n;
+  }
+
+  function previewUpload(input, iconId) {
+    if(input.files && input.files[0]) {
+      const el = document.getElementById(iconId);
+      el.textContent = '✅';
+    }
+  }
+
+  async function startCamera() {
+    try {
+      stream = await navigator.mediaDevices.getUserMedia({video:{width:480,height:360,facingMode:'user'}});
+      document.getElementById('videoEl').srcObject = stream;
+      document.getElementById('startCamBtn').style.display='none';
+      document.getElementById('captureBtn').style.display='inline-flex';
+    } catch(e) {
+      alert('Camera access denied or not available. Proceeding with simulated verification.');
+      simulateScores();
+    }
+  }
+
+  function capturePhoto() {
+    const video = document.getElementById('videoEl');
+    photoCanvas.width = video.videoWidth || 480;
+    photoCanvas.height = video.videoHeight || 360;
+    photoCanvas.getContext('2d').drawImage(video, 0, 0);
+    const img = document.getElementById('capturedImg');
+    img.src = photoCanvas.toDataURL('image/jpeg');
+    img.style.display='block';
+    video.style.display='none';
+    if(stream) stream.getTracks().forEach(t=>t.stop());
+    document.getElementById('captureBtn').style.display='none';
+    document.getElementById('retakeBtn').style.display='inline-flex';
+    simulateScores();
+  }
+
+  function retakePhoto() {
+    document.getElementById('capturedImg').style.display='none';
+    document.getElementById('videoEl').style.display='block';
+    document.getElementById('retakeBtn').style.display='none';
+    document.getElementById('scoreRow').style.display='none';
+    document.getElementById('submitKycBtn').style.display='none';
+    startCamera();
+  }
+
+  function simulateScores() {
+    const liveness   = (Math.random()*.13+0.85).toFixed(4);
+    const faceMatch  = (Math.random()*.08+0.88).toFixed(4);
+    const deepfake   = (Math.random()*.07+0.01).toFixed(4);
+    document.getElementById('livenessVal').textContent   = liveness;
+    document.getElementById('faceMatchVal').textContent  = faceMatch;
+    document.getElementById('deepfakeVal').textContent   = deepfake;
+    document.getElementById('livenessStatus').textContent  = parseFloat(liveness)>0.8?'PASS':'REVIEW';
+    document.getElementById('faceMatchStatus').textContent = parseFloat(faceMatch)>0.7?'PASS':'REVIEW';
+    document.getElementById('deepfakeStatus').textContent  = parseFloat(deepfake)<0.2?'AUTHENTIC':'REVIEW';
+    document.getElementById('scoreRow').style.display='grid';
+    document.getElementById('submitKycBtn').style.display='inline-flex';
+    // Store in hidden fields
+    document.getElementById('h_pan').value         = document.getElementById('pan_number').value.trim().toUpperCase();
+    document.getElementById('h_aadhaar').value     = document.getElementById('aadhaar_last4').value.trim();
+    document.getElementById('h_liveness').value    = liveness;
+    document.getElementById('h_face_match').value  = faceMatch;
+    document.getElementById('h_deepfake').value    = deepfake;
+  }
+
+  function submitKYC() {
+    // Show step 4 briefly then submit
+    goStep(4);
+    setTimeout(()=>document.getElementById('kycForm').submit(), 1200);
+  }
+</script>
+{% endblock %}

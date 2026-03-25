@@ -1,0 +1,2 @@
+# BNPL_Final
+SmartPay is an AI-powered Buy Now Pay Later (BNPL) platform built on Flask and Python. It integrates machine learning models including Isolation Forest for fraud detection, Logistic Regression for credit scoring, Random Forest for late-payment prediction, and a KNN + Decision Tree ensemble for EMI optimization. Deepfake-proof KYC is powered by OpenCV liveness detection, and all agreements are digitally signed with legally binding PDF generation

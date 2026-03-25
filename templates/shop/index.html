@@ -1,0 +1,263 @@
+{% extends "base.html" %}
+{% block title %}Shop{% endblock %}
+{% block head %}
+<style>
+  /* ── SHOP LAYOUT ── */
+  .shop-wrap { max-width: 1360px; margin: 0 auto; }
+
+  /* Banner */
+  .shop-banner {
+    background: linear-gradient(135deg, #2C3320 0%, #606F49 60%, #849669 100%);
+    border-radius: 18px; padding: 2.2rem 3rem; margin-bottom: 2rem;
+    display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1.5rem;
+    box-shadow: 0 8px 32px rgba(44,51,32,.3); position: relative; overflow: hidden;
+  }
+  .shop-banner::before { content:''; position:absolute; right:-60px; top:-60px; width:280px; height:280px; border-radius:50%; background:rgba(181,201,154,.08); }
+  .shop-banner::after  { content:''; position:absolute; right:80px; bottom:-80px; width:200px; height:200px; border-radius:50%; background:rgba(181,201,154,.06); }
+  .banner-left { position:relative; z-index:1; }
+  .banner-left h1 { font-family:'Cormorant Garamond',serif; font-size:2.4rem; font-weight:700; color:#fff; margin-bottom:.4rem; }
+  .banner-left p { color:rgba(255,255,255,.8); font-size:.95rem; }
+  .banner-right { display:flex; flex-direction:column; align-items:flex-end; gap:.8rem; position:relative; z-index:1; }
+  .sale-badge { background:rgba(255,255,255,.15); border:1px solid rgba(255,255,255,.3); color:var(--pale-green,#B5C99A); padding:.45rem 1.1rem; border-radius:30px; font-size:.82rem; font-weight:700; letter-spacing:.05em; }
+  .countdown { display:flex; gap:.5rem; align-items:center; }
+  .cd-unit { background:rgba(255,255,255,.12); border-radius:8px; padding:.4rem .7rem; text-align:center; min-width:46px; }
+  .cd-num { font-family:'Cormorant Garamond',serif; font-size:1.5rem; font-weight:700; color:#fff; line-height:1; }
+  .cd-lbl { font-size:.62rem; color:rgba(255,255,255,.7); text-transform:uppercase; letter-spacing:.06em; }
+  .cd-sep { color:rgba(255,255,255,.5); font-weight:700; font-size:1.2rem; }
+
+  /* Search + Filter bar */
+  .shop-controls { display:flex; flex-wrap:wrap; gap:1rem; align-items:center; margin-bottom:1.8rem; }
+  .search-input-wrap { flex:1; min-width:220px; position:relative; }
+  .search-input-wrap svg { position:absolute; left:12px; top:50%; transform:translateY(-50%); color:#849669; pointer-events:none; }
+  .search-input { width:100%; padding:.65rem 1rem .65rem 2.6rem; border:1.5px solid var(--card-border,#D6E4C8); border-radius:10px; font-family:'DM Sans',sans-serif; font-size:.9rem; background:#fff; outline:none; transition:border-color .2s; }
+  .search-input:focus { border-color:#728359; }
+  .filter-tabs { display:flex; flex-wrap:wrap; gap:.5rem; }
+  .tab-btn { padding:.45rem 1rem; border:1.5px solid var(--card-border,#D6E4C8); border-radius:30px; font-family:'DM Sans',sans-serif; font-size:.82rem; font-weight:600; cursor:pointer; background:#fff; color:#2C3320; transition:all .2s; text-decoration:none; }
+  .tab-btn.active, .tab-btn:hover { background:#606F49; border-color:#606F49; color:#fff; }
+  .sort-select { padding:.65rem 1rem; border:1.5px solid var(--card-border,#D6E4C8); border-radius:10px; font-family:'DM Sans',sans-serif; font-size:.82rem; background:#fff; color:#2C3320; outline:none; cursor:pointer; }
+  .sort-select:focus { border-color:#728359; }
+
+  /* Trending strip */
+  .trending-section { margin-bottom:2rem; }
+  .trending-section h2 { font-family:'Cormorant Garamond',serif; font-size:1.7rem; font-weight:700; color:#2C3320; margin-bottom:1rem; display:flex; align-items:center; gap:.5rem; }
+  .trending-strip { display:grid; grid-template-columns:repeat(4,1fr); gap:1rem; }
+
+  /* Product Grid */
+  .products-section h2 { font-family:'Cormorant Garamond',serif; font-size:1.7rem; font-weight:700; color:#2C3320; margin-bottom:1rem; }
+  .products-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:1.2rem; }
+
+  /* Product Card */
+  .p-card {
+    background:#fff; border:1px solid var(--card-border,#D6E4C8);
+    border-radius:14px; overflow:hidden;
+    box-shadow:0 2px 12px rgba(96,111,73,.07);
+    transition:all .3s; display:flex; flex-direction:column;
+    position:relative;
+  }
+  .p-card:hover { transform:translateY(-6px); box-shadow:0 12px 36px rgba(96,111,73,.18); }
+  .p-card.small .p-img { height:180px; }
+
+  /* Image + badges */
+  .p-img-wrap { position:relative; overflow:hidden; }
+  .p-img { width:100%; height:220px; object-fit:cover; display:block; transition:transform .4s; }
+  .p-card:hover .p-img { transform:scale(1.06); }
+  .p-img-overlay {
+    position:absolute; inset:0; background:rgba(44,51,32,.55);
+    display:flex; align-items:center; justify-content:center;
+    opacity:0; transition:opacity .3s;
+  }
+  .p-card:hover .p-img-overlay { opacity:1; }
+  .overlay-add { background:#fff; color:#606F49; border:none; border-radius:10px; padding:.7rem 1.4rem; font-family:'DM Sans',sans-serif; font-weight:700; font-size:.88rem; cursor:pointer; transition:all .2s; }
+  .overlay-add:hover { background:#606F49; color:#fff; }
+  .disc-badge { position:absolute; top:10px; left:10px; background:#C0392B; color:#fff; font-size:.72rem; font-weight:700; padding:.2rem .55rem; border-radius:6px; }
+  .bnpl-tag { position:absolute; top:10px; right:10px; background:#606F49; color:#fff; font-size:.7rem; font-weight:700; padding:.2rem .55rem; border-radius:6px; letter-spacing:.03em; }
+
+  /* Card body */
+  .p-body { padding:1rem; flex:1; display:flex; flex-direction:column; }
+  .p-cat { font-size:.7rem; font-weight:700; color:#849669; text-transform:uppercase; letter-spacing:.08em; margin-bottom:.3rem; }
+  .p-name { font-weight:700; font-size:.95rem; color:#2C3320; margin-bottom:.25rem; line-height:1.3; }
+  .p-desc { font-size:.78rem; color:#7a8a68; margin-bottom:.7rem; line-height:1.4; flex:1; }
+  .p-stars { display:flex; gap:1px; margin-bottom:.7rem; }
+  .star { font-size:.75rem; color:#D4A017; }
+  .p-pricing { display:flex; align-items:baseline; gap:.5rem; margin-bottom:.8rem; flex-wrap:wrap; }
+  .p-price { font-family:'Cormorant Garamond',serif; font-size:1.25rem; font-weight:700; color:#2C3320; }
+  .p-orig { font-size:.82rem; color:#aaa; text-decoration:line-through; }
+  .p-save { font-size:.72rem; color:#27AE60; font-weight:700; }
+  .p-emi { font-size:.76rem; color:#606F49; font-weight:600; background:#F0F5E8; padding:.2rem .55rem; border-radius:5px; margin-bottom:.8rem; width:fit-content; }
+  .add-btn { width:100%; padding:.6rem; background:#606F49; color:#fff; border:none; border-radius:9px; font-family:'DM Sans',sans-serif; font-weight:700; font-size:.88rem; cursor:pointer; transition:all .2s; display:flex; align-items:center; justify-content:center; gap:.4rem; }
+  .add-btn:hover { background:#728359; transform:translateY(-1px); }
+  .add-btn.added { background:#27AE60; }
+
+  /* Empty state */
+  .empty-state { text-align:center; padding:4rem; color:#9ca3af; }
+
+  /* Toast */
+  .toast { position:fixed; bottom:2rem; right:2rem; background:#606F49; color:#fff; padding:.8rem 1.5rem; border-radius:12px; font-size:.88rem; font-weight:600; box-shadow:0 4px 24px rgba(0,0,0,.25); z-index:9999; transform:translateY(80px); opacity:0; transition:all .35s cubic-bezier(.4,0,.2,1); }
+  .toast.show { transform:translateY(0); opacity:1; }
+
+  /* Responsive */
+  @media(max-width:1100px) { .products-grid,.trending-strip { grid-template-columns:repeat(3,1fr); } }
+  @media(max-width:768px)  { .products-grid,.trending-strip { grid-template-columns:repeat(2,1fr); } .shop-banner { padding:1.5rem; } .banner-left h1 { font-size:1.8rem; } }
+  @media(max-width:480px)  { .products-grid { grid-template-columns:1fr; } .trending-strip { grid-template-columns:1fr 1fr; } }
+</style>
+{% endblock %}
+{% block content %}
+<div class="shop-wrap">
+
+<!-- BANNER -->
+<div class="shop-banner">
+  <div class="banner-left">
+    <h1>🛒 SmartPay Shop</h1>
+    <p>Shop smarter — pay in easy EMIs with <strong style="color:#B5C99A">0% interest</strong> on top-rated products</p>
+  </div>
+  <div class="banner-right">
+    <div class="sale-badge">🔥 MEGA SALE — Up to 60% Off</div>
+    <div class="countdown" id="countdown">
+      <div class="cd-unit"><div class="cd-num" id="cd-h">00</div><div class="cd-lbl">Hrs</div></div>
+      <div class="cd-sep">:</div>
+      <div class="cd-unit"><div class="cd-num" id="cd-m">00</div><div class="cd-lbl">Min</div></div>
+      <div class="cd-sep">:</div>
+      <div class="cd-unit"><div class="cd-num" id="cd-s">00</div><div class="cd-lbl">Sec</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- CONTROLS -->
+<form method="get" action="{{ url_for('shop.index') }}" class="shop-controls" id="shopForm">
+  <div class="search-input-wrap">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+    <input type="text" name="q" placeholder="Search products…" class="search-input" value="{{ search_q }}" autocomplete="off">
+  </div>
+  <input type="hidden" name="category" id="catInput" value="{{ selected_category }}">
+  <input type="hidden" name="sort" id="sortInput" value="{{ sort_by }}">
+  <div class="filter-tabs">
+    {% for cat in categories %}
+    <a href="javascript:void(0)" class="tab-btn {% if selected_category == cat %}active{% endif %}" onclick="setCategory('{{ cat }}')">{{ cat }}</a>
+    {% endfor %}
+  </div>
+  <select class="sort-select" onchange="setSort(this.value)">
+    <option value="default"  {% if sort_by=='default'    %}selected{% endif %}>Sort: Default</option>
+    <option value="price_asc" {% if sort_by=='price_asc' %}selected{% endif %}>Price: Low → High</option>
+    <option value="price_desc" {% if sort_by=='price_desc'%}selected{% endif %}>Price: High → Low</option>
+    <option value="rating"   {% if sort_by=='rating'     %}selected{% endif %}>Highest Rated</option>
+    <option value="discount" {% if sort_by=='discount'   %}selected{% endif %}>Biggest Discount</option>
+  </select>
+</form>
+
+<!-- TRENDING -->
+{% if not search_q and selected_category == 'All' %}
+<div class="trending-section">
+  <h2>🔥 Trending Now</h2>
+  <div class="trending-strip">
+    {% for p in trending %}
+    {% set disc = (((p.original_price - p.price) / p.original_price) * 100) | int %}
+    <div class="p-card small">
+      <div class="p-img-wrap">
+        <img class="p-img" src="https://picsum.photos/seed/{{ p.image_seed }}/400/300" alt="{{ p.name }}" onerror="this.src='https://picsum.photos/400/300?random={{ p.id }}'">
+        <div class="p-img-overlay"><button class="overlay-add" onclick="addToCart({{ p.id }}, event)">+ Add to Cart</button></div>
+        <span class="disc-badge">-{{ disc }}%</span>
+        <span class="bnpl-tag">BNPL</span>
+      </div>
+      <div class="p-body">
+        <div class="p-cat">{{ p.category }}</div>
+        <div class="p-name">{{ p.name }}</div>
+        <div class="p-pricing">
+          <span class="p-price">₹{{ "{:,}".format(p.price) }}</span>
+          <span class="p-orig">₹{{ "{:,}".format(p.original_price) }}</span>
+        </div>
+        <button class="add-btn" onclick="addToCart({{ p.id }}, event)">🛒 Add to Cart</button>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+
+<!-- ALL PRODUCTS -->
+<div class="products-section">
+  <h2>
+    {% if search_q %}Search: "{{ search_q }}"{% elif selected_category != 'All' %}{{ selected_category }}{% else %}All Products{% endif %}
+    <span style="font-family:'DM Sans',sans-serif;font-size:.85rem;color:#7a8a68;font-weight:500;margin-left:.5rem;">({{ products|length }} items)</span>
+  </h2>
+  {% if products %}
+  <div class="products-grid">
+    {% for p in products %}
+    {% set disc = (((p.original_price - p.price) / p.original_price) * 100) | int %}
+    {% set stars_full = p.rating | int %}
+    <div class="p-card">
+      <div class="p-img-wrap">
+        <img class="p-img" src="https://picsum.photos/seed/{{ p.image_seed }}/400/300" alt="{{ p.name }}" onerror="this.src='https://picsum.photos/400/300?random={{ p.id }}'" loading="lazy">
+        <div class="p-img-overlay"><button class="overlay-add" onclick="addToCart({{ p.id }}, event)">+ Quick Add</button></div>
+        <span class="disc-badge">-{{ disc }}%</span>
+        <span class="bnpl-tag">BNPL ✓</span>
+      </div>
+      <div class="p-body">
+        <div class="p-cat">{{ p.category }}</div>
+        <div class="p-name">{{ p.name }}</div>
+        <div class="p-desc">{{ p.description }}</div>
+        <div class="p-stars">
+          {% for i in range(stars_full) %}<span class="star">★</span>{% endfor %}
+          {% if p.rating % 1 >= 0.5 %}<span class="star" style="opacity:.5">★</span>{% endif %}
+          <span style="font-size:.72rem;color:#7a8a68;margin-left:.3rem;">{{ p.rating }}</span>
+        </div>
+        <div class="p-pricing">
+          <span class="p-price">₹{{ "{:,}".format(p.price) }}</span>
+          <span class="p-orig">₹{{ "{:,}".format(p.original_price) }}</span>
+          <span class="p-save">You save ₹{{ "{:,}".format(p.original_price - p.price) }}</span>
+        </div>
+        <div class="p-emi">EMI from ₹{{ ((p.price / 3) | int) }}/mo · 0% interest</div>
+        <button class="add-btn" id="btn-{{ p.id }}" onclick="addToCart({{ p.id }}, event)">🛒 Add to Cart</button>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="empty-state">
+    <div style="font-size:3rem;margin-bottom:1rem">🔍</div>
+    <h3 style="font-family:'Cormorant Garamond',serif;font-size:1.6rem;margin-bottom:.5rem">No products found</h3>
+    <p>Try a different search or category.</p>
+  </div>
+  {% endif %}
+</div>
+
+</div><!-- .shop-wrap -->
+<div class="toast" id="toast"></div>
+
+<script>
+  function setCategory(cat) { document.getElementById('catInput').value = cat; document.getElementById('shopForm').submit(); }
+  function setSort(v) { document.getElementById('sortInput').value = v; document.getElementById('shopForm').submit(); }
+
+  function addToCart(pid, e) {
+    e.preventDefault(); e.stopPropagation();
+    fetch('/shop/add-to-cart', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({product_id:pid,quantity:1}) })
+    .then(r=>r.json())
+    .then(d=>{
+      if(d.success){
+        const btn = document.getElementById('btn-'+pid);
+        if(btn){ btn.classList.add('added'); btn.textContent='✓ Added!'; setTimeout(()=>{ btn.classList.remove('added'); btn.innerHTML='🛒 Add to Cart'; },1500); }
+        const badge = document.getElementById('cartCount');
+        if(badge) badge.textContent = d.cart_count;
+        showToast('Added to cart ✓');
+      }
+    }).catch(()=>showToast('Please log in first'));
+  }
+
+  function showToast(msg) {
+    const t = document.getElementById('toast'); t.textContent = msg;
+    t.classList.add('show'); setTimeout(()=>t.classList.remove('show'), 2200);
+  }
+
+  // Countdown timer — 6 hours from load
+  (function() {
+    const end = new Date(Date.now() + 6*3600*1000);
+    function tick() {
+      const diff = end - Date.now(), h = Math.floor(diff/3600000), m = Math.floor((diff%3600000)/60000), s = Math.floor((diff%60000)/1000);
+      if(diff <= 0) { clearInterval(iv); return; }
+      document.getElementById('cd-h').textContent = String(h).padStart(2,'0');
+      document.getElementById('cd-m').textContent = String(m).padStart(2,'0');
+      document.getElementById('cd-s').textContent = String(s).padStart(2,'0');
+    }
+    tick(); const iv = setInterval(tick, 1000);
+  })();
+</script>
+{% endblock %}

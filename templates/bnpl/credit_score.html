@@ -1,0 +1,235 @@
+﻿{% extends "base.html" %}
+{% block title %}Credit Assessment{% endblock %}
+{% block head %}
+<style>
+  .cs-wrap{max-width:900px;margin:0 auto;}
+
+  /* Loading sequence */
+  .loading-seq{text-align:center;padding:3rem 2rem;}
+  .loading-title{font-family:'Cormorant Garamond',serif;font-size:2rem;font-weight:700;margin-bottom:.5rem;}
+  .loading-sub{color:#6b7280;margin-bottom:2rem;}
+  .load-steps{max-width:440px;margin:0 auto;display:flex;flex-direction:column;gap:.9rem;}
+  .load-step{display:flex;align-items:center;gap:1rem;}
+  .ls-icon{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.9rem;flex-shrink:0;background:var(--card-border);}
+  .ls-icon.done{background:#eafaf1;}
+  .ls-icon.run{background:#fef9e7;animation:pulse 1s infinite;}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.6}}
+  .ls-bar{flex:1;}
+  .ls-label{font-size:.83rem;font-weight:600;color:var(--text-dark);margin-bottom:.25rem;}
+  .ls-prog{height:5px;background:var(--card-border);border-radius:4px;overflow:hidden;}
+  .ls-fill{height:100%;border-radius:4px;width:0;transition:width 1s linear;}
+  .ls-fill.green{background:var(--primary-dark);}
+
+  /* Results */
+  .results-section{display:none;}
+  .top-row{display:grid;grid-template-columns:300px 1fr;gap:1.5rem;margin-bottom:1.5rem;}
+  .gauge-card{background:#fff;border:1px solid var(--card-border);border-radius:14px;padding:1.5rem;text-align:center;box-shadow:0 2px 12px rgba(96,111,73,.07);}
+  .gauge-card h3{font-size:.82rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#9ca3af;margin-bottom:1rem;}
+  .score-gauge-wrap{position:relative;display:inline-block;}
+  .score-number{position:absolute;bottom:30px;left:50%;transform:translateX(-50%);text-align:center;}
+  .score-number .sn-val{font-family:'Cormorant Garamond',serif;font-size:2.8rem;font-weight:700;color:var(--text-dark);}
+  .score-number .sn-label{font-size:.78rem;color:#6b7280;font-weight:600;}
+  .score-cat{display:inline-block;padding:.3rem .9rem;border-radius:20px;font-size:.8rem;font-weight:800;letter-spacing:.06em;margin-top:.8rem;}
+  .sc-excellent{background:#eafaf1;color:#1e8449;} .sc-good{background:#eafaf1;color:#1e8449;}
+  .sc-fair{background:#fef9e7;color:#9a6f00;}     .sc-poor{background:#fdedec;color:#922b21;}
+
+  /* Sub scores */
+  .subs-card{background:#fff;border:1px solid var(--card-border);border-radius:14px;padding:1.5rem;box-shadow:0 2px 12px rgba(96,111,73,.07);}
+  .subs-card h3{font-size:.82rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#9ca3af;margin-bottom:1.2rem;}
+  .sub-row{margin-bottom:1rem;}
+  .sub-hdr{display:flex;justify-content:space-between;font-size:.83rem;font-weight:600;color:var(--text-dark);margin-bottom:.35rem;}
+  .sub-bar{height:8px;background:var(--card-border);border-radius:6px;overflow:hidden;}
+  .sub-fill{height:100%;border-radius:6px;width:0;transition:width 1.2s cubic-bezier(.4,0,.2,1);}
+
+  /* Fraud panel */
+  .fraud-panel{border-radius:14px;padding:1.2rem 1.5rem;margin-bottom:1.5rem;display:flex;align-items:center;gap:1rem;font-size:.88rem;font-weight:600;}
+  .fraud-clean{background:#eafaf1;border:1.5px solid #a9dfbf;color:#1e8449;}
+  .fraud-flagged{background:#fdedec;border:1.5px solid #f1948a;color:#922b21;}
+
+  /* Accordion */
+  .accordion{background:#fff;border:1px solid var(--card-border);border-radius:14px;margin-bottom:1.5rem;overflow:hidden;box-shadow:0 2px 12px rgba(96,111,73,.07);}
+  .acc-btn{width:100%;padding:1.1rem 1.4rem;background:none;border:none;text-align:left;font-family:'DM Sans',sans-serif;font-size:.9rem;font-weight:700;color:var(--text-dark);cursor:pointer;display:flex;align-items:center;justify-content:space-between;}
+  .acc-btn::after{content:'▼';font-size:.75rem;transition:transform .25s;}
+  .acc-btn.open::after{transform:rotate(180deg);}
+  .acc-body{display:none;padding:0 1.4rem 1.2rem;font-size:.85rem;line-height:1.7;color:#6b7280;border-top:1px solid var(--card-border);}
+  .acc-body.show{display:block;}
+  .model-tag{display:inline-block;padding:.15rem .55rem;background:var(--bg);border:1px solid var(--card-border);border-radius:6px;font-size:.72rem;font-weight:700;color:var(--primary-dark);margin:.1rem;}
+
+  /* Decision */
+  .decision-approved{background:linear-gradient(135deg,#27AE60,#1e8449);border-radius:16px;padding:2rem;text-align:center;color:#fff;margin-bottom:1.5rem;}
+  .decision-rejected{background:linear-gradient(135deg,#C0392B,#922b21);border-radius:16px;padding:2rem;text-align:center;color:#fff;margin-bottom:1.5rem;}
+  .decision-icon{font-size:3rem;margin-bottom:.6rem;}
+  .decision-text{font-family:'Cormorant Garamond',serif;font-size:2.2rem;font-weight:700;margin-bottom:.4rem;}
+  .decision-sub{opacity:.85;font-size:.9rem;margin-bottom:1.2rem;}
+  .btn-plan{display:inline-block;padding:.8rem 2rem;background:rgba(255,255,255,.2);border:2px solid rgba(255,255,255,.6);color:#fff;border-radius:10px;font-family:'DM Sans',sans-serif;font-weight:700;font-size:.95rem;text-decoration:none;transition:all .2s;backdrop-filter:blur(4px);}
+  .btn-plan:hover{background:rgba(255,255,255,.35);}
+
+  @media(max-width:768px){.top-row{grid-template-columns:1fr;}}
+</style>
+{% endblock %}
+{% block content %}
+<div class="cs-wrap">
+
+  <!-- Loading Animation -->
+  <div class="loading-seq" id="loadingSeq">
+    <h2 class="loading-title">🤖 Analyzing Your Profile</h2>
+    <p class="loading-sub">Our AI models are evaluating your creditworthiness…</p>
+    <div class="load-steps">
+      <div class="load-step">
+        <div class="ls-icon" id="li1">⏳</div>
+        <div class="ls-bar">
+          <div class="ls-label">Analyzing transaction history…</div>
+          <div class="ls-prog"><div class="ls-fill green" id="lf1"></div></div>
+        </div>
+      </div>
+      <div class="load-step">
+        <div class="ls-icon" id="li2">⏳</div>
+        <div class="ls-bar">
+          <div class="ls-label">Running fraud detection models…</div>
+          <div class="ls-prog"><div class="ls-fill green" id="lf2"></div></div>
+        </div>
+      </div>
+      <div class="load-step">
+        <div class="ls-icon" id="li3">⏳</div>
+        <div class="ls-bar">
+          <div class="ls-label">Calculating behavioral score…</div>
+          <div class="ls-prog"><div class="ls-fill green" id="lf3"></div></div>
+        </div>
+      </div>
+      <div class="load-step">
+        <div class="ls-icon" id="li4">⏳</div>
+        <div class="ls-bar">
+          <div class="ls-label">Generating credit report…</div>
+          <div class="ls-prog"><div class="ls-fill green" id="lf4"></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Results -->
+  <div class="results-section" id="resultsSection">
+    {% set cr = score_result %}
+    {% set fr = fraud_result %}
+    {% set score = cr.credit_score %}
+    {% set sub = cr.sub_scores %}
+
+    <div class="top-row">
+      <div class="gauge-card">
+        <h3>Credit Score</h3>
+        <div class="score-gauge-wrap">
+          <canvas id="scoreGauge" width="220" height="150"></canvas>
+          <div class="score-number">
+            <div class="sn-val">{{ score }}</div>
+            <div class="sn-label">/ 900</div>
+          </div>
+        </div>
+        {% if score >= 750 %}<span class="score-cat sc-excellent">EXCELLENT</span>
+        {% elif score >= 700 %}<span class="score-cat sc-good">GOOD</span>
+        {% elif score >= 550 %}<span class="score-cat sc-fair">FAIR</span>
+        {% else %}<span class="score-cat sc-poor">POOR</span>{% endif %}
+      </div>
+
+      <div class="subs-card">
+        <h3>Score Breakdown</h3>
+        {% set bars = [
+          ('Payment History', sub.payment_history, '#606F49'),
+          ('Fraud Risk (inverted)', 100 - sub.fraud_risk, '#C0392B'),
+          ('Behavioral Consistency', sub.behavioral, '#728359'),
+          ('Transaction Velocity', sub.velocity, '#849669'),
+          ('Identity Verification', sub.identity, '#97A97C'),
+        ] %}
+        {% for label, val, color in bars %}
+        <div class="sub-row">
+          <div class="sub-hdr"><span>{{ label }}</span><span>{{ val }}/100</span></div>
+          <div class="sub-bar">
+            <div class="sub-fill" data-width="{{ val }}" style="background:{{ color }}"></div>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+
+    <!-- Fraud Panel -->
+    {% if fr.is_fraud %}
+    <div class="fraud-panel fraud-flagged">🚨 Fraud Alert: {{ fr.anomaly_type }} — Score: {{ "%.2f"|format(fr.fraud_score * 100) }}%</div>
+    {% else %}
+    <div class="fraud-panel fraud-clean">✅ Fraud Check Passed — No anomalies detected (Risk: {{ "%.1f"|format(fr.fraud_score * 100) }}%)</div>
+    {% endif %}
+
+    <!-- ML Transparency Accordion -->
+    <div class="accordion">
+      <button class="acc-btn" onclick="toggleAcc(this)">🔍 How was this score calculated?</button>
+      <div class="acc-body">
+        <p style="margin-bottom:.7rem;">SmartPay uses a 3-layer AI pipeline to evaluate your creditworthiness:</p>
+        <p><span class="model-tag">Logistic Regression</span> — Primary credit scoring model trained on 10,000+ synthetic profiles. Weighs income, repayment history, and KYC quality to generate the base credit score (300–900).</p>
+        <p style="margin-top:.6rem;"><span class="model-tag">Isolation Forest</span> — Unsupervised anomaly detection that identifies outlier behavioral patterns such as unusual purchase velocities, device mismatches, or location anomalies. Generates the fraud score.</p>
+        <p style="margin-top:.6rem;"><span class="model-tag">Random Forest</span> — 100-tree ensemble classifier used for final approval decision and late-payment risk prediction. Combines all sub-scores to produce the approval probability.</p>
+        <p style="margin-top:.8rem;color:#9ca3af;font-size:.8rem;">Approval probability: <strong>{{ "%.1f"|format(cr.approval_probability * 100) }}%</strong> | Risk Category: <strong>{{ cr.risk_category }}</strong></p>
+      </div>
+    </div>
+
+    <!-- Decision Banner -->
+    {% if approved %}
+    <div class="decision-approved">
+      <div class="decision-icon">✅</div>
+      <div class="decision-text">You're Approved!</div>
+      <div class="decision-sub">Credit limit approved for ₹{{ "{:,.2f}".format(total_amount) }}. Choose your repayment plan below.</div>
+      <a href="{{ url_for('bnpl.payment_plan') }}" class="btn-plan">View Payment Plans →</a>
+    </div>
+    {% else %}
+    <div class="decision-rejected">
+      <div class="decision-icon">❌</div>
+      <div class="decision-text">Not Approved</div>
+      <div class="decision-sub">Your current credit score ({{ score }}) does not meet our minimum threshold of 550. Continue building your score!</div>
+      <a href="{{ url_for('dashboard.home') }}" class="btn-plan">← Back to Dashboard</a>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+<script>
+  // ── Loading Sequence ──
+  const steps = ['lf1','lf2','lf3','lf4'];
+  const icons = ['li1','li2','li3','li4'];
+  let s = 0;
+
+  function runStep() {
+    if (s >= steps.length) { showResults(); return; }
+    const fill = document.getElementById(steps[s]);
+    const icon = document.getElementById(icons[s]);
+    icon.textContent = '🔄'; icon.className = 'ls-icon run';
+    fill.style.width = '100%';
+    setTimeout(() => { icon.textContent = '✅'; icon.className = 'ls-icon done'; s++; runStep(); }, 900);
+  }
+  runStep();
+
+  function showResults() {
+    document.getElementById('loadingSeq').style.display='none';
+    document.getElementById('resultsSection').style.display='block';
+    initCharts();
+    animateBars();
+  }
+
+  function initCharts() {
+    const score = {{ score }};
+    const color = score>=750?'#27AE60':score>=650?'#97A97C':score>=550?'#D4A017':'#C0392B';
+    new Chart(document.getElementById('scoreGauge'), {
+      type:'doughnut',
+      data:{datasets:[{data:[score-300,900-score],backgroundColor:[color,'#e5e7eb'],borderWidth:0,circumference:200,rotation:260}]},
+      options:{responsive:false,plugins:{tooltip:{enabled:false},legend:{display:false}},cutout:'72%'}
+    });
+  }
+
+  function animateBars() {
+    document.querySelectorAll('.sub-fill').forEach(el => {
+      setTimeout(() => { el.style.width = el.dataset.width + '%'; }, 200);
+    });
+  }
+
+  function toggleAcc(btn) {
+    btn.classList.toggle('open');
+    const body = btn.nextElementSibling;
+    body.classList.toggle('show');
+  }
+</script>
+{% endblock %}

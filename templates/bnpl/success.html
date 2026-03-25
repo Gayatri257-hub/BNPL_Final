@@ -1,0 +1,88 @@
+﻿{% extends "base.html" %}
+{% block title %}Plan Activated!{% endblock %}
+{% block head %}
+<style>
+  .success-wrap{max-width:720px;margin:0 auto;text-align:center;}
+  .confetti-area{position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:9999;overflow:hidden;}
+  .confetti-piece{position:absolute;width:10px;height:10px;border-radius:2px;animation:confettiFall linear forwards;}
+  @keyframes confettiFall{0%{transform:translateY(-20px) rotate(0);opacity:1}100%{transform:translateY(100vh) rotate(720deg);opacity:0}}
+
+  .success-card{background:#fff;border:1px solid var(--card-border);border-radius:20px;padding:3rem 2rem;box-shadow:0 6px 36px rgba(96,111,73,.12);}
+  .success-icon{animation:popIn .6s cubic-bezier(.36,.07,.19,.97) both;}
+  @keyframes popIn{0%{transform:scale(0)}80%{transform:scale(1.1)}100%{transform:scale(1)}}
+  .success-title{font-family:'Cormorant Garamond',serif;font-size:2.4rem;font-weight:700;color:var(--text-dark);margin:.8rem 0 .3rem;}
+  .success-sub{color:#6b7280;font-size:.92rem;margin-bottom:2rem;}
+
+  .plan-summary{background:var(--bg);border:1px solid var(--card-border);border-radius:14px;padding:1.3rem 1.8rem;text-align:left;margin-bottom:2rem;}
+  .ps-row{display:flex;justify-content:space-between;font-size:.88rem;padding:.45rem 0;border-bottom:1px solid var(--card-border);}
+  .ps-row:last-child{border:none;}
+  .ps-key{color:#6b7280;} .ps-val{font-weight:700;color:var(--text-dark);}
+
+  .schedule-title{font-size:1rem;font-weight:700;color:var(--text-dark);margin-bottom:1rem;text-align:left;}
+  .schedule-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:.7rem;text-align:left;margin-bottom:2rem;}
+  .sc-item{background:var(--bg);border:1px solid var(--card-border);border-radius:10px;padding:.7rem .9rem;}
+  .sc-num{font-size:.68rem;font-weight:800;color:#9ca3af;text-transform:uppercase;letter-spacing:.06em;margin-bottom:.2rem;}
+  .sc-date{font-size:.78rem;font-weight:700;color:var(--text-dark);}
+  .sc-amt{font-size:.85rem;font-weight:700;color:var(--primary-dark);}
+
+  .action-row{display:flex;gap:1rem;justify-content:center;flex-wrap:wrap;}
+  .btn-dash{padding:.8rem 1.8rem;background:var(--primary-dark);color:#fff;border-radius:10px;font-family:'DM Sans',sans-serif;font-weight:700;font-size:.95rem;text-decoration:none;transition:all .22s;}
+  .btn-dash:hover{background:var(--primary-mid);transform:translateY(-1px);}
+  .btn-shop{padding:.8rem 1.8rem;background:#fff;color:var(--primary-dark);border:2px solid var(--primary-dark);border-radius:10px;font-family:'DM Sans',sans-serif;font-weight:700;font-size:.95rem;text-decoration:none;transition:all .22s;}
+  .btn-shop:hover{background:var(--primary-dark);color:#fff;}
+  @media(max-width:580px){.schedule-grid{grid-template-columns:1fr 1fr;}.action-row{flex-direction:column;width:100%;}}
+</style>
+{% endblock %}
+{% block content %}
+<div class="confetti-area" id="confettiArea"></div>
+<div class="success-wrap">
+  <div class="success-card">
+    <svg class="success-icon" width="80" height="80" viewBox="0 0 80 80" fill="none">
+      <circle cx="40" cy="40" r="36" fill="#eafaf1"/>
+      <circle cx="40" cy="40" r="28" fill="#27AE60"/>
+      <path d="M26 40L35 49L54 31" stroke="#fff" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+    <h1 class="success-title">🎉 Plan Activated!</h1>
+    <p class="success-sub">Your SmartPay BNPL plan is live. Your first EMI is due on {{ repayments[0].due_date.strftime('%d %b %Y') }}</p>
+
+    <div class="plan-summary">
+      <div class="ps-row"><span class="ps-key">Plan ID</span><span class="ps-val">#{{ plan.id }}</span></div>
+      <div class="ps-row"><span class="ps-key">Total Amount</span><span class="ps-val">₹{{ "{:,.2f}".format(plan.total_amount|float) }}</span></div>
+      <div class="ps-row"><span class="ps-key">Tenure</span><span class="ps-val">{{ plan.tenure_months }} months</span></div>
+      <div class="ps-row"><span class="ps-key">EMI per Month</span><span class="ps-val">₹{{ "{:,.2f}".format(plan.emi_amount|float) }}</span></div>
+      <div class="ps-row"><span class="ps-key">Processing Fee</span><span class="ps-val">{% if plan.processing_fee|float == 0 %}FREE{% else %}₹{{ "{:,.2f}".format(plan.processing_fee|float) }}{% endif %}</span></div>
+      <div class="ps-row"><span class="ps-key">Plan Status</span><span class="ps-val" style="color:#27AE60">● ACTIVE</span></div>
+    </div>
+
+    <div class="schedule-title">📅 Your Payment Schedule</div>
+    <div class="schedule-grid">
+      {% for r in repayments %}
+      <div class="sc-item">
+        <div class="sc-num">EMI {{ loop.index }}</div>
+        <div class="sc-date">{{ r.due_date.strftime('%d %b %Y') }}</div>
+        <div class="sc-amt">₹{{ "{:,.0f}".format(r.amount_due|float) }}</div>
+      </div>
+      {% endfor %}
+    </div>
+
+    <div class="action-row">
+      <a href="{{ url_for('dashboard.home') }}" class="btn-dash">🏠 Go to Dashboard</a>
+      <a href="{{ url_for('bnpl.repayments') }}" class="btn-shop">💳 View My Plans</a>
+      <a href="{{ url_for('shop.index') }}" class="btn-shop">🛍️ Continue Shopping</a>
+    </div>
+  </div>
+</div>
+
+<script>
+  // Confetti
+  const colors = ['#606F49','#B5C99A','#D4A017','#27AE60','#97A97C','#C2D5AA'];
+  const area = document.getElementById('confettiArea');
+  for(let i=0;i<60;i++){
+    const piece = document.createElement('div');
+    piece.className = 'confetti-piece';
+    piece.style.cssText = `left:${Math.random()*100}%;background:${colors[Math.floor(Math.random()*colors.length)]};animation-duration:${Math.random()*2+1.5}s;animation-delay:${Math.random()*.8}s;border-radius:${Math.random()>0.5?'50%':'2px'};`;
+    area.appendChild(piece);
+  }
+  setTimeout(()=>area.remove(), 4000);
+</script>
+{% endblock %}

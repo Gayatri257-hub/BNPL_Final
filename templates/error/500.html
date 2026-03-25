@@ -1,0 +1,70 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>500 — Server Error | SmartPay</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;600;700&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --primary: #606F49; --mid: #728359; --bg: #F5F8F0;
+      --text: #2C3320; --border: #D6E4C8; --white: #FFFFFF;
+    }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: 'DM Sans', sans-serif; background: var(--bg);
+      color: var(--text); min-height: 100vh;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      text-align: center; padding: 2rem;
+    }
+    .error-container { max-width: 520px; }
+    .shield-icon {
+      width: 80px; height: 80px; margin: 0 auto 1.5rem;
+      background: rgba(192,57,43,.08); border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .error-code {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: clamp(96px, 20vw, 140px); font-weight: 700;
+      line-height: 1;
+      background: linear-gradient(135deg, #C0392B, #E67E22);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+    }
+    h1 { font-family: 'Cormorant Garamond', serif; font-size: 2rem; font-weight: 700; color: var(--text); margin-bottom: .6rem; }
+    p { color: #7a8a68; font-size: .95rem; line-height: 1.65; margin-bottom: 2rem; }
+    .btn {
+      display: inline-flex; align-items: center; gap: .5rem;
+      background: var(--primary); color: #fff;
+      padding: .85rem 2rem; border-radius: 12px;
+      font-size: .95rem; font-weight: 600; text-decoration: none;
+      font-family: 'DM Sans', sans-serif;
+      box-shadow: 0 4px 20px rgba(96,111,73,.3); transition: all .25s;
+    }
+    .btn:hover { background: var(--mid); transform: translateY(-2px); box-shadow: 0 8px 30px rgba(96,111,73,.4); }
+    .error-details {
+      background: rgba(192,57,43,.05); border: 1px solid rgba(192,57,43,.15);
+      border-radius: 10px; padding: .8rem 1.2rem; margin-bottom: 2rem;
+      font-size: .82rem; color: #a93226; font-family: monospace;
+    }
+    .footer-note { margin-top: 3rem; font-size: .78rem; color: #b5c99a; }
+  </style>
+</head>
+<body>
+  <div class="error-container">
+    <div class="shield-icon">
+      <svg viewBox="0 0 40 40" fill="none" width="48" height="48">
+        <path d="M20 3L5 9V20C5 28.5 11.8 36.3 20 38C28.2 36.3 35 28.5 35 20V9L20 3Z" fill="#C0392B" opacity=".25"/>
+        <path d="M15 15L25 25M25 15L15 25" stroke="#C0392B" stroke-width="2.5" stroke-linecap="round"/>
+      </svg>
+    </div>
+    <div class="error-code">500</div>
+    <h1>Something Went Wrong</h1>
+    <p>Our servers encountered an unexpected error. Our team has been notified and is working to fix it. Please try again in a moment.</p>
+    <div class="error-details">Internal Server Error — Please try again shortly</div>
+    <a href="/" class="btn">← Back to Home</a>
+    <div class="footer-note">SmartPay © 2025 | PVG COEM Pune | AI & Data Science</div>
+  </div>
+</body>
+</html>

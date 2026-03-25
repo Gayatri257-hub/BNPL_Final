@@ -1,0 +1,494 @@
+{% extends "base.html" %}
+{% block title %}Dashboard{% endblock %}
+{% block head %}
+<style>
+  .dash-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:2rem; flex-wrap:wrap; gap:1rem; }
+  .dash-header h1 { font-size:2.2rem; font-weight:700; color:var(--text-dark); }
+  .dash-header p  { color:#6b7280; font-size:.92rem; margin-top:.15rem; }
+  .date-badge { background:#fff; border:1px solid var(--card-border); border-radius:10px; padding:.4rem 1rem; font-size:.82rem; color:#6b7280; }
+
+  /* Metric cards */
+  .metrics { display:grid; grid-template-columns:repeat(4,1fr); gap:1.2rem; margin-bottom:1.2rem; }
+  .metric-card { background:#fff; border:1px solid var(--card-border); border-radius:14px; padding:1.4rem 1.2rem; box-shadow:0 2px 12px rgba(96,111,73,.07); transition:transform .2s,box-shadow .2s; border-left: 4px solid transparent; }
+  .metric-card:hover { transform:translateY(-3px); box-shadow:0 6px 24px rgba(96,111,73,.14); }
+  .mc-border-green  { border-left-color: #27AE60 !important; }
+  .mc-border-orange { border-left-color: #D4A017 !important; }
+  .mc-border-blue   { border-left-color: #2980B9 !important; }
+  .mc-border-red    { border-left-color: #C0392B !important; }
+  .mc-icon { width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1.2rem;margin-bottom:1rem; }
+  .mc-green { background:#eafaf1; } .mc-blue { background:#eaf4fc; }
+  .mc-warn  { background:#fef9e7; } .mc-purple{ background:#f5eef8; }
+  .mc-val  { font-family:'Cormorant Garamond',serif; font-size:2rem; font-weight:700; color:var(--text-dark); line-height:1; }
+  .mc-label{ font-size:.78rem; color:#6b7280; margin-top:.3rem; font-weight:500; }
+  .mc-badge { display:inline-block; padding:.2rem .55rem; border-radius:6px; font-size:.7rem; font-weight:700; margin-top:.5rem; }
+  .badge-excellent { background:#eafaf1; color:#1e8449; }
+  .badge-good      { background:#eafaf1; color:#1e8449; }
+  .badge-fair      { background:#fef9e7; color:#9a6f00; }
+  .badge-poor      { background:#fdedec; color:#922b21; }
+
+  /* Quick Actions */
+  .quick-actions { display:flex; gap:1rem; margin-bottom:2rem; flex-wrap:wrap; }
+  .qa-btn { display:inline-flex; align-items:center; gap:.5rem; padding:.7rem 1.4rem; border-radius:12px; font-family:'DM Sans',sans-serif; font-size:.9rem; font-weight:700; text-decoration:none; transition:all .22s; }
+  .qa-primary { background:#606F49; color:#fff; box-shadow:0 3px 12px rgba(96,111,73,.25); }
+  .qa-primary:hover { background:#728359; transform:translateY(-2px); box-shadow:0 6px 20px rgba(96,111,73,.35); }
+  .qa-outline { background:#fff; color:#606F49; border:1.5px solid #D6E4C8; }
+  .qa-outline:hover { background:#F0F5E8; border-color:#849669; }
+
+  /* Charts row */
+  .charts-row { display:grid; grid-template-columns:280px 1fr 1fr; gap:1.2rem; margin-bottom:2rem; align-items:start; }
+  .chart-card { background:#fff; border:1px solid var(--card-border); border-radius:14px; padding:1.4rem; box-shadow:0 2px 12px rgba(96,111,73,.07); }
+  .chart-title { font-size:.85rem; font-weight:700; color:var(--text-dark); margin-bottom:1rem; letter-spacing:.02em; text-transform:uppercase; }
+  .gauge-center { position:relative; display:flex; align-items:center; justify-content:center; }
+  .gauge-label { position:absolute; text-align:center; }
+  .gauge-label .gl-val { font-family:'Cormorant Garamond',serif; font-size:2rem; font-weight:700; color:var(--text-dark); }
+  .gauge-label .gl-sub { font-size:.7rem; color:#6b7280; font-weight:500; }
+
+  /* ML Accuracy rings */
+  .accuracy-section { margin-bottom:2rem; }
+  .accuracy-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:1.2rem; }
+  .acc-card { background:#fff; border:1px solid var(--card-border); border-radius:14px; padding:1.4rem; text-align:center; box-shadow:0 2px 12px rgba(96,111,73,.07); }
+  .ring-wrap { position:relative; width:100px; height:100px; margin:0 auto .8rem; }
+  .ring-svg { transform:rotate(-90deg); }
+  .ring-bg  { stroke:var(--card-border); fill:none; stroke-width:8; }
+  .ring-fg  { fill:none; stroke-width:8; stroke-linecap:round; stroke-dasharray:283; transition:stroke-dashoffset 1.5s cubic-bezier(.4,0,.2,1); }
+  .ring-label { position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
+    font-family:'Cormorant Garamond',serif; font-size:1.2rem; font-weight:700; color:var(--text-dark); }
+  .acc-name  { font-size:.78rem; font-weight:600; color:var(--text-dark); }
+  .acc-badge { display:inline-block; padding:.15rem .5rem; border-radius:6px; font-size:.68rem; font-weight:700; margin-top:.3rem; background:#eafaf1; color:#1e8449; }
+  .acc-badge-warn { background:#fef9e7; color:#9a6f00; }
+
+  /* Tables */
+  .tables-row { display:grid; grid-template-columns:1fr 1fr; gap:1.2rem; margin-bottom:2rem; }
+  .tbl-card { background:#fff; border:1px solid var(--card-border); border-radius:14px; box-shadow:0 2px 12px rgba(96,111,73,.07); overflow:hidden; }
+  .tbl-head { padding:1.2rem 1.4rem; border-bottom:1px solid var(--card-border); display:flex; align-items:center; justify-content:space-between; }
+  .tbl-head h3 { font-size:.9rem; font-weight:700; color:var(--text-dark); }
+  table { width:100%; border-collapse:collapse; }
+  thead th { padding:.6rem 1rem; text-align:left; font-size:.72rem; text-transform:uppercase; letter-spacing:.06em; color:#9ca3af; font-weight:700; background:var(--bg); }
+  tbody td { padding:.75rem 1rem; font-size:.83rem; color:var(--text-dark); border-top:1px solid var(--card-border); }
+  tbody tr:hover { background:#fafcf8; }
+  .fraud-dot { width:8px;height:8px;border-radius:50%;display:inline-block; }
+  .fd-low  { background:#27AE60; } .fd-med { background:#D4A017; } .fd-high { background:#C0392B; }
+
+  /* Status badges */
+  .st { display:inline-block;padding:.18rem .55rem;border-radius:6px;font-size:.7rem;font-weight:700; }
+  .st-active   { background:#eafaf1;color:#1e8449; } .st-pending { background:#fef9e7;color:#9a6f00; }
+  .st-approved { background:#eafaf1;color:#1e8449; } .st-flagged { background:#fdedec;color:#922b21; }
+  .st-overdue  { background:#fdedec;color:#922b21; } .st-paid    { background:#eaf4fc;color:#1a5276; }
+
+  /* Activity + CTA row */
+  .bottom-row { display:grid; grid-template-columns:1fr 320px; gap:1.2rem; margin-bottom:2rem; }
+  .activity-card { background:#fff; border:1px solid var(--card-border); border-radius:14px; padding:1.4rem; box-shadow:0 2px 12px rgba(96,111,73,.07); }
+  .activity-header { display:flex;align-items:center;gap:.6rem;margin-bottom:1.2rem; }
+  .pulse-dot { width:10px;height:10px;border-radius:50%;background:#27AE60;animation:pulse 1.5s ease-in-out infinite; }
+  @keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(39,174,96,.5)}50%{box-shadow:0 0 0 8px rgba(39,174,96,0)}}
+  .activity-title { font-weight:700;font-size:.9rem;color:var(--text-dark); }
+  .activity-stat { display:flex;justify-content:space-between;align-items:center;padding:.6rem 0;border-bottom:1px solid var(--card-border);font-size:.84rem; }
+  .activity-stat:last-child{border:none;}
+  .stat-key { color:#6b7280; } .stat-val { font-weight:600; color:var(--text-dark); }
+  .stat-val.online { color:#27AE60; }
+
+  .cta-card {
+    background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary-light) 100%);
+    border-radius:14px; padding:2rem; color:#fff; display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;
+    box-shadow:0 4px 24px rgba(96,111,73,.25);
+  }
+  .cta-card .cta-icon { font-size:2.5rem;margin-bottom:1rem; }
+  .cta-card h3 { font-family:'Cormorant Garamond',serif;font-size:1.6rem;font-weight:700;margin-bottom:.5rem; }
+  .cta-card p { font-size:.88rem;color:rgba(255,255,255,.8);margin-bottom:1.4rem; }
+  .btn-cta {
+    background:#fff;color:var(--primary-dark);font-family:'DM Sans',sans-serif;font-weight:700;font-size:.95rem;
+    padding:.75rem 1.8rem;border-radius:10px;text-decoration:none;display:inline-block;transition:all .2s;
+  }
+  .btn-cta:hover{transform:translateY(-2px);box-shadow:0 4px 18px rgba(0,0,0,.15);}
+
+  .empty-state { text-align:center;padding:2rem;color:#9ca3af;font-size:.88rem; }
+
+  @media(max-width:1024px){.metrics{grid-template-columns:1fr 1fr;}.charts-row{grid-template-columns:1fr 1fr;}.accuracy-grid{grid-template-columns:1fr 1fr;}.tables-row{grid-template-columns:1fr;}.bottom-row{grid-template-columns:1fr;}}
+  @media(max-width:640px){.metrics{grid-template-columns:1fr 1fr;}}
+</style>
+{% endblock %}
+{% block content %}
+<!-- Header -->
+<div class="dash-header">
+  <div>
+    <h1>Welcome back, {{ user_name }}! 👋</h1>
+    <p style="color:#6b7280;font-size:.9rem;margin-top:.2rem;">Your financial overview is ready — <em style="color:#606F49;font-style:normal;font-weight:600">"Smart spending today shapes a better tomorrow."</em></p>
+  </div>
+  <div class="date-badge">📅 March 25, 2025</div>
+</div>
+
+<!-- Metric Cards -->
+<div class="metrics">
+  <div class="metric-card mc-border-green">
+    <div class="mc-icon mc-green">💳</div>
+    <div class="mc-val">{{ current_user.credit_score }}</div>
+    <div class="mc-label">Credit Score</div>
+    {% if current_user.credit_score >= 750 %}
+      <span class="mc-badge badge-excellent">▲ EXCELLENT</span>
+    {% elif current_user.credit_score >= 700 %}
+      <span class="mc-badge badge-good">▲ GOOD</span>
+    {% elif current_user.credit_score >= 550 %}
+      <span class="mc-badge badge-fair">→ FAIR</span>
+    {% else %}
+      <span class="mc-badge badge-poor">▼ POOR</span>
+    {% endif %}
+  </div>
+  <div class="metric-card mc-border-blue">
+    <div class="mc-icon mc-blue">📋</div>
+    <div class="mc-val">{{ active_plans|length }}</div>
+    <div class="mc-label">Active BNPL Plans</div>
+    <span class="mc-badge badge-good">{{ active_plans|length }} ongoing</span>
+  </div>
+  <div class="metric-card mc-border-orange">
+    <div class="mc-icon mc-warn">₹</div>
+    <div class="mc-val">₹{{ "%.0f"|format(total_due) }}</div>
+    <div class="mc-label">Amount Due This Month</div>
+    {% if total_due > 0 %}
+      <span class="mc-badge badge-fair">{{ pending_repayments|length }} instalment(s)</span>
+    {% else %}
+      <span class="mc-badge badge-good">✓ All clear</span>
+    {% endif %}
+  </div>
+  <div class="metric-card mc-border-green">
+    <div class="mc-icon mc-purple">🛡️</div>
+    <div class="mc-val">{{ current_user.trust_score }}</div>
+    <div class="mc-label">Trust Score / 100</div>
+    {% if current_user.trust_score >= 80 %}
+      <span class="mc-badge badge-excellent">▲ HIGH TRUST</span>
+    {% else %}
+      <span class="mc-badge badge-fair">→ BUILDING</span>
+    {% endif %}
+  </div>
+</div>
+
+<!-- Quick Actions -->
+<div class="quick-actions">
+  <a href="{{ url_for('shop.index') }}" class="qa-btn qa-primary">🛒 Shop Now</a>
+  <a href="{{ url_for('bnpl.repayments') }}" class="qa-btn qa-outline">📋 View Plans</a>
+  <a href="{{ url_for('bnpl.repayments') }}" class="qa-btn qa-outline">💳 Pay EMI</a>
+  {% if current_user.id == 1 %}<a href="{{ url_for('admin.dashboard') }}" class="qa-btn qa-outline">🛡 Admin Panel</a>{% endif %}
+</div>
+
+<!-- Charts Row -->
+<div class="charts-row">
+  <div class="chart-card">
+    <div class="chart-title">Credit Score</div>
+    <div class="gauge-center" style="height:180px;">
+      <canvas id="gaugeChart" width="220" height="220"></canvas>
+      <div class="gauge-label">
+        <div class="gl-val">{{ current_user.credit_score }}</div>
+        <div class="gl-sub">out of 900</div>
+      </div>
+    </div>
+  </div>
+  <div class="chart-card">
+    <div class="chart-title">Spending Trend — March</div>
+    <canvas id="spendingChart" height="160"></canvas>
+  </div>
+  <div class="chart-card">
+    <div class="chart-title">Category Breakdown</div>
+    <canvas id="categoryChart" height="160"></canvas>
+  </div>
+</div>
+
+<!-- ML Accuracy Rings -->
+<div class="accuracy-section">
+  <h2 class="section-title" style="font-size:1.3rem;margin-bottom:1rem;">🤖 AI Model Performance</h2>
+  <div class="accuracy-grid">
+    <div class="acc-card">
+      <div class="ring-wrap">
+        <svg class="ring-svg" viewBox="0 0 100 100" width="100" height="100">
+          <circle class="ring-bg" cx="50" cy="50" r="45"/>
+          <circle class="ring-fg" id="ring1" cx="50" cy="50" r="45" stroke="#606F49" stroke-dashoffset="22.7"/>
+        </svg>
+        <div class="ring-label">99.2%</div>
+      </div>
+      <div class="acc-name">Fraud Detection</div>
+      <span class="acc-badge">Isolation Forest</span>
+    </div>
+    <div class="acc-card">
+      <div class="ring-wrap">
+        <svg class="ring-svg" viewBox="0 0 100 100" width="100" height="100">
+          <circle class="ring-bg" cx="50" cy="50" r="45"/>
+          <circle class="ring-fg" id="ring2" cx="50" cy="50" r="45" stroke="#728359" stroke-dashoffset="15.5"/>
+        </svg>
+        <div class="ring-label">94.5%</div>
+      </div>
+      <div class="acc-name">Credit Scoring</div>
+      <span class="acc-badge">Logistic Regression</span>
+    </div>
+    <div class="acc-card">
+      <div class="ring-wrap">
+        <svg class="ring-svg" viewBox="0 0 100 100" width="100" height="100">
+          <circle class="ring-bg" cx="50" cy="50" r="45"/>
+          <circle class="ring-fg" id="ring3" cx="50" cy="50" r="45" stroke="#849669" stroke-dashoffset="23.4"/>
+        </svg>
+        <div class="ring-label">91.8%</div>
+      </div>
+      <div class="acc-name">Late Payment Prediction</div>
+      <span class="acc-badge">Random Forest</span>
+    </div>
+    <div class="acc-card">
+      <div class="ring-wrap">
+        <svg class="ring-svg" viewBox="0 0 100 100" width="100" height="100">
+          <circle class="ring-bg" cx="50" cy="50" r="45"/>
+          <circle class="ring-fg" id="ring4" cx="50" cy="50" r="45" stroke="#B5C99A" stroke-dashoffset="280.7"/>
+        </svg>
+        <div class="ring-label">0.8%</div>
+      </div>
+      <div class="acc-name">False Positive Rate</div>
+      <span class="acc-badge acc-badge-warn">Below threshold</span>
+    </div>
+  </div>
+</div>
+
+<!-- Tables -->
+<div class="tables-row">
+  <div class="tbl-card">
+    <div class="tbl-head">
+      <h3>Active Repayment Plans</h3>
+      <a href="{{ url_for('bnpl.repayments') }}" style="font-size:.8rem;color:var(--primary-dark);text-decoration:none;font-weight:600;">View all →</a>
+    </div>
+    {% if pending_repayments %}
+    <table>
+      <thead><tr><th>Plan</th><th>Due Date</th><th>Amount Due</th><th>Status</th></tr></thead>
+      <tbody>
+        {% for r in pending_repayments[:5] %}
+        <tr>
+          <td>#{{ r.plan_id }}</td>
+          <td>{{ r.due_date.strftime('%d %b %Y') }}</td>
+          <td>₹{{ "%.2f"|format(r.amount_due|float + r.late_fee|float) }}</td>
+          <td><span class="st st-{{ r.status }}">{{ r.status|upper }}</span></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <div class="empty-state">🎉 No pending repayments! You're all caught up.</div>
+    {% endif %}
+  </div>
+
+  <div class="tbl-card">
+    <div class="tbl-head">
+      <h3>Recent Transactions</h3>
+    </div>
+    {% if transactions %}
+    <table>
+      <thead><tr><th>Product</th><th>Amount</th><th>Risk</th><th>Status</th></tr></thead>
+      <tbody>
+        {% for txn in transactions %}
+        <tr>
+          <td>{{ (txn.product_name or 'Unknown')[:22] }}</td>
+          <td>₹{{ "%.0f"|format(txn.amount|float) }}</td>
+          <td>
+            {% set fs = txn.fraud_score|float %}
+            <span class="fraud-dot {% if fs < 0.2 %}fd-low{% elif fs < 0.5 %}fd-med{% else %}fd-high{% endif %}"></span>
+            {{ "%.0f"|format(fs*100) }}%
+          </td>
+          <td><span class="st st-{{ txn.status }}">{{ txn.status|upper }}</span></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <div class="empty-state">🛒 No transactions yet. Visit the store!</div>
+    {% endif %}
+  </div>
+</div>
+
+<!-- Activity + CTA -->
+<div class="bottom-row">
+  <div class="activity-card">
+    <div class="activity-header">
+      <div class="pulse-dot"></div>
+      <div class="activity-title">Real-time System Status</div>
+    </div>
+    <div class="activity-stat"><span class="stat-key">System Status</span><span class="stat-val online">● ACTIVE</span></div>
+    <div class="activity-stat"><span class="stat-key">Risk Level</span><span class="stat-val" style="color:#27AE60">LOW</span></div>
+    <div class="activity-stat"><span class="stat-key">KYC Status</span><span class="stat-val">{{ current_user.kyc_status|upper }}</span></div>
+    <div class="activity-stat"><span class="stat-key">Account Created</span><span class="stat-val">{{ current_user.account_created_at.strftime('%d %b %Y') }}</span></div>
+    <div class="activity-stat"><span class="stat-key">Last Login</span><span class="stat-val">Just now</span></div>
+    <div class="activity-stat"><span class="stat-key">Fraud Detection</span><span class="stat-val online">● Running</span></div>
+    <div class="activity-stat"><span class="stat-key">ML Models</span><span class="stat-val online">● All Online</span></div>
+  </div>
+  <div class="cta-card">
+    <div class="cta-icon">🛍️</div>
+    <h3>Visit SmartPay Store</h3>
+    <p>Browse 20+ products across Electronics, Fashion, Books and more. Pay in easy EMIs!</p>
+    <a href="{{ url_for('shop.index') }}" class="btn-cta">Shop Now →</a>
+  </div>
+</div>
+
+<!-- About Us Accordion -->
+<div style="margin-bottom:2rem;">
+  <h2 class="section-title" style="font-size:1.3rem;margin-bottom:1rem;">ℹ️ About SmartPay</h2>
+  <div id="aboutAccordion" style="background:#fff;border:1px solid var(--card-border);border-radius:14px;overflow:hidden;box-shadow:0 2px 12px rgba(96,111,73,.07);">
+
+    <!-- Item 1: Technology -->
+    <div class="acc-item" style="border-bottom:1px solid var(--card-border);">
+      <button onclick="toggleAcc('acc1')" style="width:100%;display:flex;align-items:center;justify-content:space-between;padding:1.1rem 1.5rem;background:none;border:none;cursor:pointer;font-family:'DM Sans',sans-serif;font-size:.92rem;font-weight:600;color:var(--text-dark);">
+        <span>⚙️ About SmartPay Technology</span>
+        <span id="acc1-arrow" style="transition:transform .3s;font-size:.8rem;">▼</span>
+      </button>
+      <div id="acc1" style="display:none;padding:0 1.5rem 1.2rem;font-size:.88rem;color:#5a6a48;line-height:1.7;">
+        SmartPay is an AI-powered Buy Now Pay Later (BNPL) platform built on Flask and Python. It integrates
+        machine learning models including Isolation Forest for fraud detection, Logistic Regression for credit
+        scoring, Random Forest for late-payment prediction, and a KNN + Decision Tree ensemble for EMI
+        optimization. Deepfake-proof KYC is powered by OpenCV liveness detection, and all agreements are
+        digitally signed with legally binding PDF generation.
+      </div>
+    </div>
+
+    <!-- Item 2: Team -->
+    <div class="acc-item" style="border-bottom:1px solid var(--card-border);">
+      <button onclick="toggleAcc('acc2')" style="width:100%;display:flex;align-items:center;justify-content:space-between;padding:1.1rem 1.5rem;background:none;border:none;cursor:pointer;font-family:'DM Sans',sans-serif;font-size:.92rem;font-weight:600;color:var(--text-dark);">
+        <span>👩‍💻 Meet the Team</span>
+        <span id="acc2-arrow" style="transition:transform .3s;font-size:.8rem;">▼</span>
+      </button>
+      <div id="acc2" style="display:none;padding:0 1.5rem 1.2rem;">
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;">
+          <div style="background:var(--bg);border:1px solid var(--card-border);border-radius:12px;padding:1.2rem;text-align:center;">
+            <div style="width:54px;height:54px;border-radius:50%;background:linear-gradient(135deg,#606F49,#B5C99A);color:#fff;font-weight:700;font-size:1.1rem;display:flex;align-items:center;justify-content:center;margin:0 auto .8rem;font-family:'Cormorant Garamond',serif;">SG</div>
+            <div style="font-weight:700;font-size:.9rem;color:var(--text-dark);">Shrutika Giri</div>
+            <div style="font-size:.75rem;color:#7a8a68;">Roll No. 2012</div>
+            <div style="font-size:.8rem;color:var(--primary-dark);font-weight:600;margin-top:.3rem;">AI &amp; Data Science</div>
+          </div>
+          <div style="background:var(--bg);border:1px solid var(--card-border);border-radius:12px;padding:1.2rem;text-align:center;">
+            <div style="width:54px;height:54px;border-radius:50%;background:linear-gradient(135deg,#728359,#C2D5AA);color:#fff;font-weight:700;font-size:1.1rem;display:flex;align-items:center;justify-content:center;margin:0 auto .8rem;font-family:'Cormorant Garamond',serif;">GB</div>
+            <div style="font-weight:700;font-size:.9rem;color:var(--text-dark);">Gayatri Badgujar</div>
+            <div style="font-size:.75rem;color:#7a8a68;">Roll No. 2007</div>
+            <div style="font-size:.8rem;color:var(--primary-dark);font-weight:600;margin-top:.3rem;">AI &amp; Data Science</div>
+          </div>
+          <div style="background:var(--bg);border:1px solid var(--card-border);border-radius:12px;padding:1.2rem;text-align:center;">
+            <div style="width:54px;height:54px;border-radius:50%;background:linear-gradient(135deg,#849669,#D6E4C8);color:#fff;font-weight:700;font-size:1.1rem;display:flex;align-items:center;justify-content:center;margin:0 auto .8rem;font-family:'Cormorant Garamond',serif;">AK</div>
+            <div style="font-weight:700;font-size:.9rem;color:var(--text-dark);">Anvi Kore</div>
+            <div style="font-size:.75rem;color:#7a8a68;">Roll No. 2028</div>
+            <div style="font-size:.8rem;color:var(--primary-dark);font-weight:600;margin-top:.3rem;">AI &amp; Data Science</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Item 3: College -->
+    <div class="acc-item" style="border-bottom:1px solid var(--card-border);">
+      <button onclick="toggleAcc('acc3')" style="width:100%;display:flex;align-items:center;justify-content:space-between;padding:1.1rem 1.5rem;background:none;border:none;cursor:pointer;font-family:'DM Sans',sans-serif;font-size:.92rem;font-weight:600;color:var(--text-dark);">
+        <span>🎓 College &amp; Project Details</span>
+        <span id="acc3-arrow" style="transition:transform .3s;font-size:.8rem;">▼</span>
+      </button>
+      <div id="acc3" style="display:none;padding:0 1.5rem 1.2rem;font-size:.88rem;color:#5a6a48;line-height:1.7;">
+        <strong style="color:var(--text-dark);">Institution:</strong> PVG College of Engineering, Technology &amp; Management, Pune<br>
+        <strong style="color:var(--text-dark);">Department:</strong> AI &amp; Data Science<br>
+        <strong style="color:var(--text-dark);">Project:</strong> Final Year Engineering Project 2025<br>
+        <strong style="color:var(--text-dark);">Tech Stack:</strong> Flask · Python · scikit-learn · OpenCV · SQLAlchemy · Chart.js
+      </div>
+    </div>
+
+    <!-- Item 4: Project Guide -->
+    <div class="acc-item">
+      <button onclick="toggleAcc('acc4')" style="width:100%;display:flex;align-items:center;justify-content:space-between;padding:1.1rem 1.5rem;background:none;border:none;cursor:pointer;font-family:'DM Sans',sans-serif;font-size:.92rem;font-weight:600;color:var(--text-dark);">
+        <span>🙏 Acknowledgments</span>
+        <span id="acc4-arrow" style="transition:transform .3s;font-size:.8rem;">▼</span>
+      </button>
+      <div id="acc4" style="display:none;padding:0 1.5rem 1.2rem;font-size:.88rem;color:#5a6a48;line-height:1.7;">
+        We sincerely thank our project guide and the faculty of the Department of AI &amp; Data Science at PVG COEM Pune
+        for their invaluable guidance, mentorship, and support throughout the development of SmartPay.
+        This project stands as a testament to the commitment of PVG COEM to fostering practical,
+        industry-relevant engineering solutions.
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+  // Credit Score Gauge (half doughnut)
+  new Chart(document.getElementById('gaugeChart'), {
+    type: 'doughnut',
+    data: {
+      datasets: [{
+        data: [{{ current_user.credit_score }}, {{ 900 - current_user.credit_score }}],
+        backgroundColor: [
+          '{{ "#27AE60" if current_user.credit_score >= 700 else "#D4A017" if current_user.credit_score >= 550 else "#C0392B" }}',
+          '#e8f0e8'
+        ],
+        borderWidth: 0,
+        circumference: 180,
+        rotation: 270
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        legend: { display: false },
+        tooltip: { enabled: false }
+      },
+      cutout: '75%'
+    }
+  });
+
+  // Spending Line Chart
+  new Chart(document.getElementById('spendingChart'), {
+    type: 'line',
+    data: {
+      labels: ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'],
+      datasets: [{
+        label: 'Spending (₹)',
+        data: [2400, 3100, 1800, 4200, 3600, 5100, 4800, 6200, 5400, 7100, 6800, 7800],
+        borderColor: '#606F49',
+        backgroundColor: 'rgba(96,111,73,.08)',
+        fill: true, tension: .4,
+        pointBackgroundColor: '#606F49', pointRadius: 4, pointHoverRadius: 6
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: { legend: { display: false } },
+      scales: {
+        y: { grid: { color: '#f0f4eb' }, ticks: { callback: v => '₹' + v.toLocaleString() } },
+        x: { grid: { display: false } }
+      }
+    }
+  });
+
+  // Category Bar Chart
+  new Chart(document.getElementById('categoryChart'), {
+    type: 'bar',
+    data: {
+      labels: ['Electronics','Fashion','Books','Sports','Home'],
+      datasets: [{
+        data: [8499, 5299, 1197, 2097, 3499],
+        backgroundColor: ['#606F49','#728359','#849669','#97A97C','#B5C99A'],
+        borderRadius: 8, borderSkipped: false
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: { legend: { display: false } },
+      scales: {
+        y: { grid: { color: '#f0f4eb' }, ticks: { callback: v => '₹' + v.toLocaleString() } },
+        x: { grid: { display: false } }
+      }
+    }
+  });
+
+  // Animate ML rings on load
+  window.addEventListener('load', () => {
+    const rings = [{id:'ring1',pct:99.2},{id:'ring2',pct:94.5},{id:'ring3',pct:91.8},{id:'ring4',pct:0.8}];
+    rings.forEach(({id,pct}) => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      const circumference = 2 * Math.PI * 45;
+      setTimeout(() => { el.style.strokeDashoffset = circumference * (1 - pct/100); }, 300);
+    });
+  });
+
+  // About Us accordion
+  function toggleAcc(id) {
+    const panel = document.getElementById(id);
+    const arrow = document.getElementById(id + '-arrow');
+    const isOpen = panel.style.display !== 'none';
+    panel.style.display = isOpen ? 'none' : 'block';
+    if (arrow) arrow.style.transform = isOpen ? 'rotate(0deg)' : 'rotate(180deg)';
+  }
+</script>
+{% endblock %}

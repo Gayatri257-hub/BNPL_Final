@@ -1,0 +1,146 @@
+{% extends "base.html" %}
+{% block title %}Choose Your EMI Plan{% endblock %}
+{% block head %}
+<style>
+  .pp-wrap{max-width:860px;margin:0 auto;}
+  .pp-header{text-align:center;margin-bottom:2rem;}
+  .pp-header h1{font-size:2.2rem;font-weight:700;color:var(--text-dark);}
+  .pp-header p{color:#6b7280;font-size:.92rem;margin-top:.3rem;}
+
+  /* Order summary */
+  .order-summary{background:#fff;border:1px solid var(--card-border);border-radius:14px;padding:1.3rem 1.6rem;margin-bottom:2rem;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.8rem;box-shadow:0 2px 12px rgba(96,111,73,.07);}
+  .os-item{text-align:center;}
+  .os-val{font-family:'Cormorant Garamond',serif;font-size:1.5rem;font-weight:700;color:var(--text-dark);}
+  .os-key{font-size:.75rem;color:#9ca3af;font-weight:600;}
+  .os-div{width:1px;height:40px;background:var(--card-border);}
+
+  /* Plan cards */
+  .plans-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1.3rem;margin-bottom:2rem;}
+  .plan-card{background:#fff;border:2px solid var(--card-border);border-radius:16px;padding:1.6rem;cursor:pointer;transition:all .25s;position:relative;}
+  .plan-card:hover{border-color:var(--primary-mid);box-shadow:0 6px 24px rgba(96,111,73,.15);}
+  .plan-card.selected{border-color:var(--primary-dark);box-shadow:0 6px 24px rgba(96,111,73,.2);}
+  .plan-card input[type=radio]{display:none;}
+  .rec-badge{position:absolute;top:-12px;left:50%;transform:translateX(-50%);background:var(--primary-dark);color:#fff;font-size:.68rem;font-weight:800;padding:.25rem .9rem;border-radius:20px;letter-spacing:.08em;white-space:nowrap;}
+  .plan-months{font-family:'Cormorant Garamond',serif;font-size:2.2rem;font-weight:700;color:var(--text-dark);text-align:center;}
+  .plan-months span{font-size:.9rem;font-weight:500;color:#9ca3af;}
+  .plan-emi{font-family:'Cormorant Garamond',serif;font-size:1.8rem;font-weight:700;color:var(--primary-dark);text-align:center;margin:.4rem 0;}
+  .plan-emi span{font-size:.85rem;color:#9ca3af;font-weight:400;}
+  .plan-divider{border:none;border-top:1px solid var(--card-border);margin:.9rem 0;}
+  .plan-details{font-size:.8rem;color:#6b7280;display:flex;flex-direction:column;gap:.3rem;}
+  .pd-row{display:flex;justify-content:space-between;}
+  .pd-val{font-weight:700;color:var(--text-dark);}
+  .free-badge{color:#27AE60;font-weight:700;}
+  .zero-badge{display:inline-block;background:#eafaf1;color:#27AE60;font-size:.68rem;font-weight:800;padding:.1rem .4rem;border-radius:4px;}
+  .checkmark{position:absolute;top:.8rem;right:.8rem;width:24px;height:24px;border-radius:50%;background:var(--primary-dark);display:none;align-items:center;justify-content:center;color:#fff;font-size:.75rem;}
+  .plan-card.selected .checkmark{display:flex;}
+
+  /* Timeline */
+  .timeline-section{background:#fff;border:1px solid var(--card-border);border-radius:14px;padding:1.5rem;margin-bottom:2rem;box-shadow:0 2px 12px rgba(96,111,73,.07);}
+  .timeline-section h3{font-size:.9rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#9ca3af;margin-bottom:1.2rem;}
+  .timeline{position:relative;display:flex;flex-wrap:wrap;gap:.7rem;}
+  .tl-item{display:flex;align-items:center;gap:.5rem;background:var(--bg);border:1px solid var(--card-border);border-radius:10px;padding:.5rem .9rem;font-size:.8rem;}
+  .tl-num{width:22px;height:22px;border-radius:50%;background:var(--primary-dark);color:#fff;font-size:.7rem;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+
+  /* Score message */
+  .score-msg{border-radius:12px;padding:.9rem 1.2rem;font-size:.85rem;font-weight:600;margin-bottom:2rem;display:flex;align-items:center;gap:.6rem;}
+  .sm-excellent{background:#eafaf1;border:1px solid #a9dfbf;color:#1e8449;}
+  .sm-good{background:#eafaf1;border:1px solid #a9dfbf;color:#1e8449;}
+  .sm-fair{background:#fef9e7;border:1px solid #f7dc6f;color:#9a6f00;}
+
+  /* Confirm button */
+  .confirm-btn{width:100%;padding:.9rem;background:var(--primary-dark);color:#fff;border:none;border-radius:12px;font-family:'DM Sans',sans-serif;font-size:1.05rem;font-weight:700;cursor:pointer;transition:all .22s;}
+  .confirm-btn:hover{background:var(--primary-mid);transform:translateY(-1px);box-shadow:0 5px 20px rgba(96,111,73,.3);}
+  .confirm-btn:disabled{background:#9ca3af;cursor:not-allowed;transform:none;box-shadow:none;}
+
+  @media(max-width:700px){.plans-grid{grid-template-columns:1fr;}.os-div{display:none;}.order-summary{justify-content:center;}}
+</style>
+{% endblock %}
+{% block content %}
+<div class="pp-wrap">
+  <div class="pp-header">
+    <h1>Choose Your Payment Plan</h1>
+    <p>Select the EMI tenure that fits your budget. All prices include GST.</p>
+  </div>
+
+  <!-- Order Summary -->
+  <div class="order-summary">
+    <div class="os-item"><div class="os-val">₹{{ "{:,.2f}".format(total_amount) }}</div><div class="os-key">Total Amount</div></div>
+    <div class="os-div"></div>
+    <div class="os-item"><div class="os-val">{{ credit_score }}</div><div class="os-key">Your Credit Score</div></div>
+    <div class="os-div"></div>
+    <div class="os-item"><div class="os-val">{% if credit_score >= 750 %}0%{% elif credit_score >= 700 %}1.5%{% elif credit_score >= 650 %}3%{% else %}5%{% endif %}</div><div class="os-key">Base Interest Rate</div></div>
+    <div class="os-div"></div>
+    <div class="os-item"><div class="os-val">Instant</div><div class="os-key">Approval Speed</div></div>
+  </div>
+
+  <!-- Score Message -->
+  {% if credit_score >= 750 %}
+  <div class="score-msg sm-excellent">🏆 Excellent credit! You qualify for 0% interest on all plans. All processing fees waived.</div>
+  {% elif credit_score >= 700 %}
+  <div class="score-msg sm-good">👍 Good credit score! You get low interest rates and reduced processing fees.</div>
+  {% else %}
+  <div class="score-msg sm-fair">💡 Fair credit score. Making on-time payments will improve your score and unlock better rates.</div>
+  {% endif %}
+
+  <!-- Plan Cards -->
+  <form method="POST" action="{{ url_for('bnpl.confirm') }}" id="planForm">
+    <div class="plans-grid">
+      {% for plan in plans %}
+      <div class="plan-card {% if plan.recommended %}selected{% endif %}" onclick="selectPlan(this, {{ plan.months }})" id="card-{{ plan.months }}">
+        {% if plan.recommended %}<div class="rec-badge">⭐ RECOMMENDED</div>{% endif %}
+        <div class="checkmark">✓</div>
+        <input type="radio" name="months" value="{{ plan.months }}" {% if plan.recommended %}checked{% endif %}>
+        <div class="plan-months">{{ plan.months }}<span> months</span></div>
+        <div class="plan-emi">₹{{ "{:,.0f}".format(plan.emi) }}<span>/month</span></div>
+        <hr class="plan-divider">
+        <div class="plan-details">
+          <div class="pd-row"><span>Interest Rate</span><span class="pd-val {% if plan.annual_rate == 0 %}free-badge{% endif %}">{% if plan.annual_rate == 0 %}0% <span class="zero-badge">FREE</span>{% else %}{{ plan.annual_rate }}% p.a.{% endif %}</span></div>
+          <div class="pd-row"><span>Processing Fee</span><span class="pd-val {% if plan.processing_fee == 0 %}free-badge{% endif %}">{% if plan.processing_fee == 0 %}FREE{% else %}₹{{ plan.processing_fee }}{% endif %}</span></div>
+          <div class="pd-row"><span>Total Payable</span><span class="pd-val">₹{{ "{:,.0f}".format(plan.total_payable) }}</span></div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+
+    <!-- Timeline -->
+    <div class="timeline-section" id="timelineBox">
+      <h3>Payment Schedule — <span id="tlLabel">6 months</span></h3>
+      <div class="timeline" id="tlItems"></div>
+    </div>
+
+    <button type="submit" class="confirm-btn" id="confirmBtn">✅ Confirm &amp; Activate Plan</button>
+  </form>
+</div>
+
+<script>
+  const plans = {{ plans | tojson }};
+  const startDate = new Date();
+  let selectedMonths = {% for p in plans %}{% if p.recommended %}{{ p.months }}{% endif %}{% endfor %};
+
+  function selectPlan(el, months) {
+    document.querySelectorAll('.plan-card').forEach(c=>c.classList.remove('selected'));
+    el.classList.add('selected');
+    el.querySelector('input').checked = true;
+    selectedMonths = months;
+    buildTimeline(months);
+  }
+
+  function buildTimeline(months) {
+    const plan = plans.find(p=>p.months===months);
+    document.getElementById('tlLabel').textContent = months+' months';
+    const container = document.getElementById('tlItems');
+    container.innerHTML = '';
+    for(let i=1;i<=months;i++){
+      const d = new Date(startDate);
+      d.setMonth(d.getMonth()+i);
+      const label = d.toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'});
+      const div = document.createElement('div');
+      div.className='tl-item';
+      div.innerHTML = `<div class="tl-num">${i}</div><div><div style="font-weight:700;font-size:.78rem">₹${plan.emi.toLocaleString('en-IN',{minimumFractionDigits:0,maximumFractionDigits:0})}</div><div style="color:#9ca3af;font-size:.72rem">${label}</div></div>`;
+      container.appendChild(div);
+    }
+  }
+
+  buildTimeline(selectedMonths);
+</script>
+{% endblock %}
