@@ -69,6 +69,11 @@ def create_app(config_class=Config):
     return app
 
 
+# Expose `application` at module level so Gunicorn can import it directly
+# (Procfile: web: gunicorn app:application)
+application = create_app()
+
 if __name__ == '__main__':
-    application = create_app()
-    application.run(debug=True)
+    import os
+    port = int(os.environ.get('PORT', 5000))
+    application.run(host='0.0.0.0', port=port, debug=False)
