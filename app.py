@@ -1,5 +1,5 @@
 import os
-from flask import Flask, redirect, render_template, url_for
+from flask import Flask, redirect, render_template, url_for, jsonify
 from config import Config
 from extensions import db, login_manager, bcrypt
 
@@ -9,9 +9,12 @@ def create_app(config_class=Config):
     app = Flask(__name__)
     app.config.from_object(config_class)
 
-    # Ensure upload directories exist
-    os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
-    os.makedirs(app.config['ML_MODELS_PATH'], exist_ok=True)
+    # Ensure upload directories exist (ignore errors on read-only filesystems)
+    try:
+        os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
+        os.makedirs(app.config['ML_MODELS_PATH'], exist_ok=True)
+    except OSError:
+        pass
 
     # Initialise extensions
     db.init_app(app)
@@ -40,6 +43,11 @@ def create_app(config_class=Config):
     app.register_blueprint(admin_bp,     url_prefix='/admin')
     app.register_blueprint(api_bp,       url_prefix='/api')
 
+    # ── Health check (Railway uses this — must NOT require DB) ──
+    @app.route('/health')
+    def health():
+        return jsonify(status='ok'), 200
+
     # ── Splash / Index routes ──
     @app.route('/splash')
     def splash():
@@ -61,10 +69,13 @@ def create_app(config_class=Config):
     def server_error(e):
         return render_template('error/500.html'), 500
 
-    # Create all DB tables on first run
+    # Create all DB tables on first run (fail-safe: DB may not be ready yet)
     with app.app_context():
-        from models import user, transaction, bnpl_plan, repayment, fraud_log, kyc  # noqa: F401
-        db.create_all()
+        try:
+            from models import user, transaction, bnpl_plan, repayment, fraud_log, kyc  # noqa: F401
+            db.create_all()
+        except Exception as e:
+            app.logger.warning(f"db.create_all() skipped at startup: {e}")
 
     return app
 
@@ -74,6 +85,6 @@ def create_app(config_class=Config):
 application = create_app()
 
 if __name__ == '__main__':
-    import os
     port = int(os.environ.get('PORT', 5000))
     application.run(host='0.0.0.0', port=port, debug=False)
+
