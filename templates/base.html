@@ -321,84 +321,16 @@
 
 <script>
 (function() {
-  /* ── RESPONSES DB ── */
-  const R = {
-    greetings: {
-      t: ['hi','hello','hey','namaste','good morning','good evening','howdy'],
-      r: [
-        "Namaste! 👋 I'm SmartBot, your AI financial assistant. How can I help you today?",
-        "Hello! Welcome to SmartPay. I can help with credit scores, EMI plans, fraud protection and more!",
-        "Hi there! 😊 Ask me anything about BNPL, credit scores, or how SmartPay works!"
-      ]
-    },
-    credit_score: {
-      t: ['credit score','credit','score','creditworthiness','eligible','qualify','approval'],
-      r: [
-        "Your credit score (300–900) is calculated using our Logistic Regression ML model analysing: payment history, income, existing loans, KYC status and account age. Score above 650 gets you approved! 📊",
-        "A good score (700+) means better EMI options and lower processing fees. Pay your EMIs on time to improve it! ⭐",
-        "We use explainable AI — so you always know why you were approved or declined. No black-box decisions! 🧠"
-      ]
-    },
-    fraud: {
-      t: ['fraud','safe','security','protection','scam','hack','secure','data'],
-      r: [
-        "SmartPay uses Isolation Forest ML to detect fraud in real-time! Every transaction is analysed for: unusual amounts, suspicious timing, location anomalies and device changes. 🛡",
-        "We achieve 99.2% fraud detection accuracy. Your money and data are protected by AES-256 encryption and continuous AI monitoring. 🔒",
-        "Your data never leaves our encrypted servers. We are GDPR-aligned and use deepfake detection to prevent identity theft. 🔐"
-      ]
-    },
-    emi: {
-      t: ['emi','installment','payment plan','split','pay later','bnpl','monthly'],
-      r: [
-        "SmartPay offers 3 EMI tenures: 3 months (0% fee for excellent credit), 6 months (2% fee), 9 months (3% fee). Our KNN + Decision Tree model recommends the best plan for you! 📅",
-        "BNPL = Buy Now Pay Later! Add items to cart → Pay with SmartPay → instant AI credit check → pay in easy EMIs. Simple! ✨",
-        "You can view and pay your EMIs anytime from My Plans. Set reminders so you never miss a payment! 💳"
-      ]
-    },
-    kyc: {
-      t: ['kyc','verification','identity','aadhaar','pan','document','selfie','face'],
-      r: [
-        "Our KYC uses OpenCV-powered deepfake detection! We verify: PAN card, Aadhaar number, live selfie with liveness detection and face matching. Prevents identity fraud. 🔍",
-        "KYC takes under 2 minutes. Make sure you're in good lighting for the selfie — our AI checks for liveness to stop photo spoofing! 📸"
-      ]
-    },
-    how_to_use: {
-      t: ['how','use','start','begin','steps','guide','tutorial','getting started'],
-      r: [
-        "Getting started: 1️⃣ Create account → 2️⃣ Complete KYC → 3️⃣ Sign digital agreement → 4️⃣ Browse 40+ products → 5️⃣ Add to cart → 6️⃣ Choose BNPL → 7️⃣ Get instant AI approval → 8️⃣ Pay in EMIs! 🚀"
-      ]
-    },
-    interest: {
-      t: ['interest','fee','charge','cost','free','zero','0%'],
-      r: [
-        "Great news! Credit score above 750 = 0% fee on 3-month plans! Otherwise fees are 2–4% depending on tenure. Zero hidden charges, ever. 💚",
-        "SmartPay is transparent about all charges. You'll see the exact fee before confirming any BNPL plan. ✅"
-      ]
-    },
-    shop: {
-      t: ['shop','product','buy','purchase','item','category','electronics','fashion','book'],
-      r: [
-        "SmartPay has 40+ products across 5 categories: Electronics, Fashion, Books, Home & Kitchen, and Sports! All BNPL-eligible. 🛒",
-        "All products show savings, EMI estimates and discount badges. Add to cart and pay with SmartPay BNPL for 0% interest! 🏷"
-      ]
-    }
-  };
-  const DEFAULTS = [
-    "I'm not sure about that. Try asking about: credit scores, EMI plans, KYC, fraud protection, or how SmartPay works! 😊",
-    "Hmm, I didn't quite get that. I can help with: BNPL payments, credit eligibility, security features or account setup! 🤖",
-    "Great question! For detailed support, contact our team. Meanwhile, ask me about any SmartPay feature! 💬"
-  ];
-
-  const WELCOME = "Hi! I'm SmartBot 🤖 Your AI financial assistant.\n\nAsk me about credit scores, EMI plans, fraud protection, or how SmartPay works!";
+  const WELCOME = "Hi! I'm SmartBot 🤖 Your AI financial assistant powered by Claude.\n\nAsk me about credit scores, EMI plans, fraud protection, or how SmartPay works!";
 
   /* ── STATE ── */
-  let open = false, msgs = [], notifCleared = false;
-  const fab = document.getElementById('sbFab');
+  let open = false, msgs = [], notifCleared = false, isFetching = false;
+  const fab   = document.getElementById('sbFab');
   const panel = document.getElementById('sbPanel');
   const notif = document.getElementById('sbNotif');
   const msgBox = document.getElementById('sbMessages');
-  const input = document.getElementById('sbInput');
-  const chips = document.getElementById('sbChips');
+  const input  = document.getElementById('sbInput');
+  const chips  = document.getElementById('sbChips');
 
   /* ── OPEN / CLOSE ── */
   fab.addEventListener('click', toggle);
@@ -408,20 +340,21 @@
   function setOpen(v) {
     open = v;
     panel.classList.toggle('open', v);
-    if (v && msgs.length === 0) { botMsg(WELCOME); chips.style.display = ''; }
-    if (v && !notifCleared) { notifCleared = true; if(notif) notif.style.display='none'; }
-    if (v) { chips.style.display=''; setTimeout(()=>input.focus(),300); }
+    if (v && msgs.length === 0) { addMsg(WELCOME, 'bot'); chips.style.display = ''; }
+    if (v && !notifCleared) { notifCleared = true; if (notif) notif.style.display = 'none'; }
+    if (v) { chips.style.display = ''; setTimeout(() => input.focus(), 300); }
   }
 
   /* ── MESSAGES ── */
   function ts() {
-    const d=new Date(); return d.getHours().toString().padStart(2,'0')+':'+d.getMinutes().toString().padStart(2,'0');
+    const d = new Date();
+    return d.getHours().toString().padStart(2,'0') + ':' + d.getMinutes().toString().padStart(2,'0');
   }
   function addMsg(text, who) {
     if (msgs.length >= 50) { msgs.shift(); msgBox.firstChild && msgBox.removeChild(msgBox.firstChild); }
-    msgs.push({text,who});
+    msgs.push({text, who});
     const wrap = document.createElement('div'); wrap.className = 'sb-msg ' + who;
-    const bub = document.createElement('div');  bub.className = 'sb-bubble';
+    const bub  = document.createElement('div'); bub.className  = 'sb-bubble';
     bub.textContent = text;
     const t = document.createElement('div'); t.className = 'sb-time'; t.textContent = ts();
     wrap.appendChild(bub); wrap.appendChild(t);
@@ -429,39 +362,55 @@
     msgBox.scrollTop = msgBox.scrollHeight;
     return wrap;
   }
-  function botMsg(text) {
-    // Hide chips after first real interaction
+
+  function showTyping() {
     chips.style.display = 'none';
-    // Typing indicator
-    const typing = document.createElement('div'); typing.className = 'sb-msg bot sb-typing';
+    const typing = document.createElement('div'); typing.className = 'sb-msg bot sb-typing'; typing.id = 'sbTyping';
     const tbub = document.createElement('div'); tbub.className = 'sb-bubble'; tbub.innerHTML = '&nbsp;';
-    typing.appendChild(tbub); msgBox.appendChild(typing); msgBox.scrollTop = msgBox.scrollHeight;
-    setTimeout(() => {
-      msgBox.removeChild(typing);
-      addMsg(text, 'bot');
-    }, 900 + Math.random()*400);
+    typing.appendChild(tbub);
+    msgBox.appendChild(typing);
+    msgBox.scrollTop = msgBox.scrollHeight;
+  }
+  function hideTyping() {
+    const typing = document.getElementById('sbTyping');
+    if (typing) typing.remove();
   }
 
-  /* ── MATCH RESPONSE ── */
-  function getReply(msg) {
-    const m = msg.toLowerCase();
-    for (const key of Object.keys(R)) {
-      if (R[key].t.some(t => m.includes(t))) {
-        const arr = R[key].r; return arr[Math.floor(Math.random()*arr.length)];
-      }
+  /* ── SEND (async, calls /api/smartbot) ── */
+  async function sendMessage(text) {
+    if (!text || isFetching) return;
+    isFetching = true;
+    input.disabled = true;
+
+    chips.style.display = 'none';
+    addMsg(text, 'user');
+    showTyping();
+
+    try {
+      const resp = await fetch('/api/smartbot', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: text }),
+      });
+      const data = await resp.json();
+      hideTyping();
+      addMsg(data.reply || "Sorry, I couldn't process that. Please try again!", 'bot');
+    } catch (err) {
+      hideTyping();
+      addMsg("I'm having trouble connecting right now. Please try again in a moment! 🔄", 'bot');
+    } finally {
+      isFetching = false;
+      input.disabled = false;
+      input.focus();
     }
-    return DEFAULTS[Math.floor(Math.random()*DEFAULTS.length)];
   }
 
-  /* ── SEND ── */
   window.sbSend = function(override) {
     const text = (override || input.value).trim();
     if (!text) return;
     if (!open) setOpen(true);
-    addMsg(text, 'user');
     input.value = '';
-    chips.style.display = 'none';
-    botMsg(getReply(text));
+    sendMessage(text);
   };
   input.addEventListener('keydown', e => { if (e.key === 'Enter') sbSend(); });
 })();

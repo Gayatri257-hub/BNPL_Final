@@ -26,6 +26,8 @@ class User(UserMixin, db.Model):
     trust_score = db.Column(db.Integer, default=100)
     last_login = db.Column(db.DateTime)
     is_active = db.Column(db.Boolean, default=True)
+    # Credit limit set from monthly income at signup; never changes unless admin edits
+    credit_limit = db.Column(db.Numeric(10, 2), default=10000)
 
     # Relationships
     transactions = db.relationship('Transaction', backref='user', lazy=True)
@@ -33,6 +35,17 @@ class User(UserMixin, db.Model):
     repayments = db.relationship('Repayment', backref='user', lazy=True)
     fraud_logs = db.relationship('FraudLog', backref='user', lazy=True)
     kyc_record = db.relationship('KYCRecord', backref='user', uselist=False, lazy=True)
+
+    @property
+    def available_credit(self):
+        """Remaining credit = credit_limit minus sum of all active/pending BNPL plan totals."""
+        used = sum(
+            float(p.total_amount)
+            for p in self.bnpl_plans
+            if p.status == 'active'
+        )
+        remaining = float(self.credit_limit or 0) - used
+        return max(round(remaining, 2), 0)
 
     def __repr__(self):
         return f'<User {self.id}>'

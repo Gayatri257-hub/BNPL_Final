@@ -1,6 +1,6 @@
 from flask import (Blueprint, abort, jsonify, redirect, render_template,
                    request, session, url_for)
-from flask_login import login_required
+from flask_login import login_required, current_user
 
 shop_bp = Blueprint('shop', __name__)
 
@@ -104,7 +104,9 @@ def cart():
     gst      = round(subtotal * 0.18, 2)
     total    = round(subtotal + gst, 2)
     return render_template('shop/cart.html', cart_items=enriched, subtotal=subtotal,
-                           gst=gst, total=total, savings=savings)
+                           gst=gst, total=total, savings=savings,
+                           user_credit_limit=float(current_user.credit_limit or 0),
+                           available_credit=float(current_user.available_credit))
 
 
 @shop_bp.route('/add-to-cart', methods=['POST'])

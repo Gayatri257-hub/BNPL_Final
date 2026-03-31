@@ -1,0 +1,404 @@
+{% extends "base.html" %}
+{% block title %}Transaction Blocked — SmartPay{% endblock %}
+{% block head %}
+<style>
+  /* ── Full-page fraud blocked layout ── */
+  .fb-wrap {
+    min-height: 80vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem 1rem;
+  }
+  .fb-card {
+    background: #fff;
+    border-radius: 24px;
+    max-width: 680px;
+    width: 100%;
+    overflow: hidden;
+    box-shadow: 0 20px 60px rgba(192,57,43,.15);
+    animation: slideUp .5s cubic-bezier(.34,1.56,.64,1);
+  }
+  @keyframes slideUp {
+    from { opacity:0; transform:translateY(40px) scale(.95); }
+    to   { opacity:1; transform:translateY(0) scale(1); }
+  }
+
+  /* Header banner */
+  .fb-header {
+    background: linear-gradient(135deg, #C0392B 0%, #922b21 100%);
+    padding: 2.5rem 2rem;
+    text-align: center;
+    color: #fff;
+    position: relative;
+    overflow: hidden;
+  }
+  .fb-header::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: repeating-linear-gradient(
+      45deg,
+      transparent,
+      transparent 30px,
+      rgba(255,255,255,.03) 30px,
+      rgba(255,255,255,.03) 60px
+    );
+  }
+  .fb-icon {
+    font-size: 4rem;
+    margin-bottom: .8rem;
+    display: block;
+    animation: shake .6s ease-in-out;
+  }
+  @keyframes shake {
+    0%,100%{transform:translateX(0)}
+    20%{transform:translateX(-8px)}
+    40%{transform:translateX(8px)}
+    60%{transform:translateX(-6px)}
+    80%{transform:translateX(6px)}
+  }
+  .fb-header h1 {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 2rem;
+    font-weight: 700;
+    margin-bottom: .4rem;
+  }
+  .fb-header p { opacity: .85; font-size: .92rem; }
+
+  /* Body */
+  .fb-body { padding: 2rem; }
+
+  /* Reason box */
+  .fb-reason {
+    background: #fef2f2;
+    border: 1.5px solid #fca5a5;
+    border-radius: 12px;
+    padding: 1.2rem 1.4rem;
+    margin-bottom: 1.5rem;
+    display: flex;
+    gap: .9rem;
+    align-items: flex-start;
+  }
+  .fb-reason-icon { font-size: 1.4rem; flex-shrink: 0; margin-top: .1rem; }
+  .fb-reason-text h3 {
+    font-size: .85rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .06em;
+    color: #922b21;
+    margin-bottom: .3rem;
+  }
+  .fb-reason-text p { font-size: .88rem; color: #374151; line-height: 1.5; }
+
+  /* Credit limit meter */
+  .fb-limit-box {
+    background: #f9fafb;
+    border: 1px solid #e5e7eb;
+    border-radius: 14px;
+    padding: 1.3rem 1.5rem;
+    margin-bottom: 1.5rem;
+  }
+  .fb-limit-box h3 {
+    font-size: .8rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .06em;
+    color: #9ca3af;
+    margin-bottom: 1rem;
+  }
+  .limit-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: .8rem;
+    margin-bottom: 1rem;
+  }
+  .limit-cell {
+    text-align: center;
+    background: #fff;
+    border-radius: 10px;
+    padding: .8rem .5rem;
+    border: 1px solid #e5e7eb;
+  }
+  .limit-cell.attempted { border-color: #fca5a5; background: #fef2f2; }
+  .limit-cell.available { border-color: #a9dfbf; background: #f0fdf4; }
+  .lc-label { font-size: .7rem; font-weight: 700; text-transform: uppercase; letter-spacing:.04em; color: #9ca3af; margin-bottom: .3rem; }
+  .lc-val { font-family: 'Cormorant Garamond', serif; font-size: 1.4rem; font-weight: 700; }
+  .lc-val.red { color: #922b21; }
+  .lc-val.green { color: #1e8449; }
+  .lc-val.gray { color: #374151; }
+
+  /* Progress bar */
+  .limit-bar-wrap { }
+  .limit-bar-labels {
+    display: flex;
+    justify-content: space-between;
+    font-size: .75rem;
+    color: #6b7280;
+    margin-bottom: .3rem;
+  }
+  .limit-bar {
+    height: 10px;
+    background: #e5e7eb;
+    border-radius: 8px;
+    overflow: hidden;
+  }
+  .limit-bar-used {
+    height: 100%;
+    border-radius: 8px;
+    background: linear-gradient(90deg, #27AE60, #f59e0b, #C0392B);
+    transition: width 1.2s ease-out;
+    width: 0;
+  }
+  .limit-bar-over {
+    height: 100%;
+    border-radius: 8px;
+    background: #C0392B;
+    transition: width 1.2s ease-out;
+    width: 0;
+    animation: pulse-red 1s infinite;
+  }
+  @keyframes pulse-red {
+    0%,100%{opacity:1}50%{opacity:.6}
+  }
+
+  /* Anomaly tags */
+  .fb-anomalies {
+    background: #fff8e1;
+    border: 1px solid #ffc107;
+    border-radius: 12px;
+    padding: 1rem 1.2rem;
+    margin-bottom: 1.5rem;
+  }
+  .fb-anomalies h3 {
+    font-size: .8rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    color: #856404;
+    margin-bottom: .6rem;
+  }
+  .anomaly-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: .3rem;
+    background: #fff;
+    border: 1px solid #ffc107;
+    border-radius: 6px;
+    padding: .25rem .7rem;
+    font-size: .78rem;
+    font-weight: 600;
+    color: #78350f;
+    margin: .2rem;
+  }
+
+  /* Fraud score */
+  .fb-score-row {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    background: #f9fafb;
+    border-radius: 10px;
+    padding: .8rem 1rem;
+    margin-bottom: 1.5rem;
+  }
+  .fb-score-row span { font-size: .82rem; color: #6b7280; font-weight: 600; white-space: nowrap; }
+  .fb-score-bar-wrap { flex: 1; height: 8px; background: #e5e7eb; border-radius: 6px; overflow: hidden; }
+  .fb-score-bar { height: 100%; border-radius: 6px; background: linear-gradient(90deg,#27AE60 0%,#FF9800 50%,#C0392B 100%); width: 0; transition: width 1.2s ease; }
+
+  /* Risk badge */
+  .risk-badge {
+    display: inline-block;
+    padding: .25rem .75rem;
+    border-radius: 20px;
+    font-size: .75rem;
+    font-weight: 800;
+    letter-spacing: .06em;
+  }
+  .risk-high   { background: #fdedec; color: #922b21; border: 1.5px solid #f1948a; }
+  .risk-medium { background: #fff3cd; color: #856404; border: 1.5px solid #ffc107; }
+  .risk-low    { background: #eafaf1; color: #1e8449; border: 1.5px solid #a9dfbf; }
+
+  /* Action buttons */
+  .fb-actions {
+    display: flex;
+    gap: .8rem;
+    flex-wrap: wrap;
+  }
+  .btn-primary-red {
+    flex: 1;
+    padding: .9rem 1.5rem;
+    background: linear-gradient(135deg, #C0392B, #922b21);
+    color: #fff;
+    border: none;
+    border-radius: 12px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: .9rem;
+    font-weight: 700;
+    cursor: pointer;
+    text-decoration: none;
+    text-align: center;
+    display: block;
+    transition: opacity .2s;
+  }
+  .btn-primary-red:hover { opacity: .85; }
+  .btn-outline {
+    flex: 1;
+    padding: .9rem 1.5rem;
+    background: #fff;
+    color: var(--text-dark);
+    border: 1.5px solid var(--card-border);
+    border-radius: 12px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: .9rem;
+    font-weight: 700;
+    cursor: pointer;
+    text-decoration: none;
+    text-align: center;
+    display: block;
+    transition: background .2s;
+  }
+  .btn-outline:hover { background: #f9fafb; }
+
+  /* Tip box */
+  .fb-tip {
+    margin-top: 1.5rem;
+    background: #f0fdf4;
+    border: 1px solid #a9dfbf;
+    border-radius: 12px;
+    padding: 1rem 1.2rem;
+    font-size: .84rem;
+    color: #1e5631;
+    line-height: 1.5;
+  }
+  .fb-tip strong { display: block; margin-bottom: .3rem; }
+
+  @media(max-width:600px){
+    .limit-row { grid-template-columns: 1fr; }
+    .fb-actions { flex-direction: column; }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+{% set bd = block_data %}
+{% set fraud_pct = (bd.fraud_score * 100)|round(1) %}
+{% set used_pct  = [(bd.attempted_amount / user_credit_limit * 100)|round(1), 100]|min if user_credit_limit > 0 else 100 %}
+
+<div class="fb-wrap">
+  <div class="fb-card">
+
+    {# ── Header ── #}
+    <div class="fb-header">
+      <span class="fb-icon">
+        {% if 'credit' in bd.reason|lower %}💳{% else %}🚨{% endif %}
+      </span>
+      <h1>Transaction Blocked</h1>
+      <p>Our real-time fraud detection system has prevented this transaction</p>
+    </div>
+
+    <div class="fb-body">
+
+      {# ── Reason ── #}
+      <div class="fb-reason">
+        <div class="fb-reason-icon">⛔</div>
+        <div class="fb-reason-text">
+          <h3>Reason for Block</h3>
+          <p>{{ bd.reason }}</p>
+        </div>
+      </div>
+
+      {# ── Credit Limit Meter ── #}
+      <div class="fb-limit-box">
+        <h3>💳 Credit Limit Status</h3>
+        <div class="limit-row">
+          <div class="limit-cell">
+            <div class="lc-label">Your Limit</div>
+            <div class="lc-val gray">₹{{ "{:,.0f}".format(user_credit_limit) }}</div>
+          </div>
+          <div class="limit-cell available">
+            <div class="lc-label">Available</div>
+            <div class="lc-val green">₹{{ "{:,.0f}".format(available_credit) }}</div>
+          </div>
+          <div class="limit-cell attempted">
+            <div class="lc-label">Attempted</div>
+            <div class="lc-val red">₹{{ "{:,.0f}".format(bd.attempted_amount) }}</div>
+          </div>
+        </div>
+        <div class="limit-bar-wrap">
+          <div class="limit-bar-labels">
+            <span>₹0</span>
+            <span>₹{{ "{:,.0f}".format(user_credit_limit) }} limit</span>
+          </div>
+          <div class="limit-bar">
+            {% if bd.attempted_amount > user_credit_limit %}
+            <div class="limit-bar-over" id="limitBarOver" data-width="100"></div>
+            {% else %}
+            <div class="limit-bar-used" id="limitBarUsed" data-width="{{ used_pct }}"></div>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+
+      {# ── Fraud Score ── #}
+      <div class="fb-score-row">
+        <span>Fraud Risk Score</span>
+        <div class="fb-score-bar-wrap">
+          <div class="fb-score-bar" id="fraudBar"></div>
+        </div>
+        <span>
+          <strong>{{ fraud_pct }}%</strong>
+          <span class="risk-badge risk-{{ bd.risk_level|lower }}">
+            {{ bd.risk_level }}
+          </span>
+        </span>
+      </div>
+
+      {# ── Anomalies ── #}
+      {% if bd.anomalies %}
+      <div class="fb-anomalies">
+        <h3>⚠️ Detected Anomalies ({{ bd.anomalies|length }})</h3>
+        {% for a in bd.anomalies %}
+        <span class="anomaly-chip">🔶 {{ a }}</span>
+        {% endfor %}
+      </div>
+      {% endif %}
+
+      {# ── Actions ── #}
+      <div class="fb-actions">
+        <a href="{{ url_for('shop.cart') }}" class="btn-outline">🛒 Edit Cart</a>
+        <a href="{{ url_for('dashboard.home') }}" class="btn-primary-red">← Back to Dashboard</a>
+      </div>
+
+      {# ── Tip ── #}
+      {% if 'credit' in bd.reason|lower %}
+      <div class="fb-tip">
+        <strong>💡 How to unlock more credit?</strong>
+        Your available credit restores automatically once you complete EMI payments on existing plans.
+        Current available: <strong>₹{{ "{:,.0f}".format(available_credit) }}</strong> of
+        ₹{{ "{:,.0f}".format(user_credit_limit) }} limit.
+      </div>
+      {% else %}
+      <div class="fb-tip">
+        <strong>💡 Why was this blocked?</strong>
+        Our AI detected suspicious patterns in this transaction. If you believe this is a mistake,
+        please contact SmartPay support or try again after a few hours.
+      </div>
+      {% endif %}
+
+    </div>{# /fb-body #}
+  </div>{# /fb-card #}
+</div>
+
+<script>
+  // Animate bars on load
+  window.addEventListener('load', () => {
+    setTimeout(() => {
+      const used = document.getElementById('limitBarUsed');
+      const over = document.getElementById('limitBarOver');
+      if (used) used.style.width = used.dataset.width + '%';
+      if (over) over.style.width = '100%';
+      document.getElementById('fraudBar').style.width = '{{ fraud_pct }}%';
+    }, 300);
+  });
+</script>
+{% endblock %}

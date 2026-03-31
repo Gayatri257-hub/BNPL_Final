@@ -48,4 +48,6 @@ def home():
         active_plans=active_plans,
         pending_repayments=pending_repayments,
         total_due=total_due,
+        user_credit_limit=float(current_user.credit_limit or 0),
+        available_credit=float(current_user.available_credit),
     )

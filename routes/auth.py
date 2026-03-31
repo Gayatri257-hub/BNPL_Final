@@ -1,4 +1,4 @@
-﻿import base64
+import base64
 import os
 from datetime import datetime
 
@@ -55,6 +55,16 @@ def signup():
             except ValueError:
                 pass
 
+        # Income → credit limit mapping
+        INCOME_CREDIT_MAP = {
+            'below_15000':    14999,
+            '15000_30000':    25000,
+            '30000_50000':    45000,
+            '50000_100000':   80000,
+            'above_100000':  150000,
+        }
+        credit_limit = INCOME_CREDIT_MAP.get(monthly_income, 10000)
+
         new_user = User(
             name_encrypted=encrypt_field(name),
             email_encrypted=encrypt_field(email),
@@ -64,6 +74,7 @@ def signup():
             monthly_income_range=monthly_income,
             city=city,
             date_of_birth=dob,
+            credit_limit=credit_limit,
         )
         db.session.add(new_user)
         db.session.commit()
@@ -95,9 +106,7 @@ def login():
             flash('Invalid email or password.', 'error')
             return render_template('auth/login.html')
 
-        if user.is_blacklisted:
-            flash('Your account has been suspended. Contact support.', 'error')
-            return render_template('auth/login.html')
+        # NOTE: blacklisted users CAN login so fraud rejection is shown during BNPL flow
 
         user.last_login = datetime.utcnow()
         db.session.commit()
@@ -212,3 +221,116 @@ def agreement():
         return redirect(url_for('dashboard.home'))
 
     return render_template('auth/agreement.html')
+
+
+# ---------------------------------------------------------------------------
+# Dev / Demo — Seed Fraud Account
+# ---------------------------------------------------------------------------
+
+@auth_bp.route('/create-fraud-demo')
+def create_fraud_demo():
+    from extensions import db
+    from models.user import User
+    from models.transaction import Transaction
+    from models.fraud_log import FraudLog
+    from models.kyc import KYCRecord
+    from utils.encryption import encrypt_field, hash_for_lookup
+    from datetime import datetime, timedelta
+    import random
+    from flask import jsonify
+
+    # Delete existing fraud demo account if it exists
+    existing_hash = hash_for_lookup('fraud.demo@smartpay.com')
+    existing = User.query.filter_by(email_hash=existing_hash).first()
+    if existing:
+        FraudLog.query.filter_by(user_id=existing.id).delete()
+        Transaction.query.filter_by(user_id=existing.id).delete()
+        KYCRecord.query.filter_by(user_id=existing.id).delete()
+        db.session.delete(existing)
+        db.session.commit()
+
+    # Create blacklisted fraud user
+    fraud_user = User(
+        name_encrypted=encrypt_field('Mohammed Fraud Khan'),
+        email_encrypted=encrypt_field('fraud.demo@smartpay.com'),
+        email_hash=hash_for_lookup('fraud.demo@smartpay.com'),
+        phone_encrypted=encrypt_field('+91 9999999999'),
+        password_hash=bcrypt.generate_password_hash('Fraud@1234').decode('utf-8'),
+        monthly_income_range='below_15000',
+        city='Unknown',
+        date_of_birth=datetime(1990, 1, 1).date(),
+        account_created_at=datetime.utcnow() - timedelta(days=90),
+        kyc_status='verified',
+        agreement_signed=True,
+        agreement_signed_at=datetime.utcnow() - timedelta(days=90),
+        is_blacklisted=True,
+        credit_score=320,
+        trust_score=5,
+        last_login=datetime.utcnow(),
+        is_active=True,
+        credit_limit=14999,
+    )
+    db.session.add(fraud_user)
+    db.session.flush()
+
+    # Add KYC record
+    kyc = KYCRecord(
+        user_id=fraud_user.id,
+        pan_encrypted=encrypt_field('FRAUD1234X'),
+        aadhaar_last4='0000',
+        liveness_score=0.45,
+        deepfake_score=0.82,
+        face_match_score=0.31,
+        verification_status='verified',
+        verified_at=datetime.utcnow() - timedelta(days=89),
+        created_at=datetime.utcnow() - timedelta(days=90),
+    )
+    db.session.add(kyc)
+
+    # Add 10 fraudulent transactions + fraud logs
+    fraud_reasons = [
+        'High value transaction: amount exceeds 8x average',
+        'Velocity fraud: 12 transactions in 24 hours detected',
+        'Location anomaly: transaction from 4 different cities in 2 hours',
+        'Device change detected with suspicious high-value transaction',
+        'Unusual transaction hour: 3 AM activity with large amount',
+        'IP risk score critical: known fraud IP address detected',
+        'Amount significantly above average: 10x normal spending',
+        'Multiple failed authentication attempts before transaction',
+    ]
+    for i in range(10):
+        t = Transaction(
+            user_id=fraud_user.id,
+            amount=round(random.uniform(45000, 95000), 2),
+            product_name='Suspicious High Value Item',
+            category='Electronics',
+            transaction_type='purchase',
+            fraud_score=round(random.uniform(0.78, 0.97), 4),
+            is_flagged=True,
+            fraud_reason=fraud_reasons[i % len(fraud_reasons)],
+            status='flagged',
+        )
+        db.session.add(t)
+        db.session.flush()
+
+        fl = FraudLog(
+            user_id=fraud_user.id,
+            transaction_id=t.id,
+            fraud_type=fraud_reasons[i % len(fraud_reasons)].split(':')[0],
+            fraud_score=t.fraud_score,
+            detection_model='IsolationForest + RandomForest',
+            resolved=False,
+        )
+        db.session.add(fl)
+
+    db.session.commit()
+
+    return jsonify({
+        'status': 'Fraud demo account created!',
+        'email': 'fraud.demo@smartpay.com',
+        'password': 'Fraud@1234',
+        'credit_score': 320,
+        'is_blacklisted': True,
+        'fraud_logs': 10,
+        'flagged_transactions': 10
+    })

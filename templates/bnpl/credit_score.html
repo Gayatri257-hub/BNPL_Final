@@ -1,4 +1,4 @@
-﻿{% extends "base.html" %}
+{% extends "base.html" %}
 {% block title %}Credit Assessment{% endblock %}
 {% block head %}
 <style>
@@ -10,15 +10,45 @@
   .loading-sub{color:#6b7280;margin-bottom:2rem;}
   .load-steps{max-width:440px;margin:0 auto;display:flex;flex-direction:column;gap:.9rem;}
   .load-step{display:flex;align-items:center;gap:1rem;}
-  .ls-icon{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.9rem;flex-shrink:0;background:var(--card-border);}
-  .ls-icon.done{background:#eafaf1;}
+  .ls-icon{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1rem;flex-shrink:0;background:var(--card-border);transition:all .3s;}
+  .ls-icon.done{background:#eafaf1;transform:scale(1.1);}
   .ls-icon.run{background:#fef9e7;animation:pulse 1s infinite;}
+  .ls-icon.fraud-run{background:#fff3cd;animation:pulse-orange 1s infinite;}
+  .ls-icon.fraud-warn{background:#fdedec;transform:scale(1.1);}
   @keyframes pulse{0%,100%{opacity:1}50%{opacity:.6}}
+  @keyframes pulse-orange{0%,100%{opacity:1;box-shadow:0 0 0 0 rgba(255,152,0,.4)}50%{opacity:.7;box-shadow:0 0 0 8px rgba(255,152,0,0)}}
   .ls-bar{flex:1;}
   .ls-label{font-size:.83rem;font-weight:600;color:var(--text-dark);margin-bottom:.25rem;}
-  .ls-prog{height:5px;background:var(--card-border);border-radius:4px;overflow:hidden;}
+  .ls-prog{height:6px;background:var(--card-border);border-radius:4px;overflow:hidden;}
   .ls-fill{height:100%;border-radius:4px;width:0;transition:width 1s linear;}
   .ls-fill.green{background:var(--primary-dark);}
+  .ls-fill.orange{background:#FF9800;}
+  .ls-fill.red{background:#C0392B;}
+
+  /* ── FRAUD WARNING MODAL ── */
+  .fraud-modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:9999;display:flex;align-items:center;justify-content:center;opacity:0;visibility:hidden;transition:all .3s;}
+  .fraud-modal-overlay.show{opacity:1;visibility:visible;}
+  .fraud-modal{background:#fff;border-radius:20px;padding:2.5rem;max-width:480px;width:90%;text-align:center;box-shadow:0 25px 60px rgba(0,0,0,.3);transform:scale(.8) translateY(30px);transition:all .4s cubic-bezier(.34,1.56,.64,1);border-top:5px solid #C0392B;}
+  .fraud-modal-overlay.show .fraud-modal{transform:scale(1) translateY(0);}
+  .fraud-modal-icon{font-size:4rem;margin-bottom:1rem;animation:shake 0.5s ease-in-out;}
+  @keyframes shake{0%,100%{transform:rotate(0deg)}20%{transform:rotate(-10deg)}40%{transform:rotate(10deg)}60%{transform:rotate(-8deg)}80%{transform:rotate(8deg)}}
+  .fraud-modal h2{font-family:'Cormorant Garamond',serif;font-size:1.8rem;font-weight:700;color:#922b21;margin-bottom:.5rem;}
+  .fraud-modal-risk{display:inline-block;padding:.3rem 1rem;border-radius:20px;font-size:.8rem;font-weight:800;letter-spacing:.08em;margin-bottom:1rem;}
+  .risk-high{background:#fdedec;color:#922b21;border:2px solid #f1948a;}
+  .risk-medium{background:#fff3cd;color:#856404;border:2px solid #ffc107;}
+  .risk-low{background:#eafaf1;color:#1e8449;border:2px solid #a9dfbf;}
+  .fraud-modal p{color:#6b7280;font-size:.9rem;line-height:1.6;margin-bottom:1.5rem;}
+  .fraud-modal-anomalies{background:#fef2f2;border:1px solid #fca5a5;border-radius:10px;padding:1rem;margin-bottom:1.5rem;text-align:left;}
+  .fraud-modal-anomalies h4{font-size:.8rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#922b21;margin-bottom:.6rem;}
+  .anomaly-item{display:flex;align-items:center;gap:.5rem;font-size:.85rem;color:#374151;margin-bottom:.35rem;}
+  .fraud-modal-score{display:flex;align-items:center;justify-content:space-between;background:#f9fafb;border-radius:10px;padding:.8rem 1rem;margin-bottom:1.5rem;}
+  .fraud-modal-score span{font-size:.82rem;color:#6b7280;font-weight:600;}
+  .fraud-score-bar-wrap{flex:1;margin:0 1rem;height:8px;background:#e5e7eb;border-radius:6px;overflow:hidden;}
+  .fraud-score-bar{height:100%;border-radius:6px;transition:width 1s ease-out;}
+  .fraud-modal-btn{padding:.85rem 2.5rem;background:#C0392B;color:#fff;border:none;border-radius:10px;font-family:'DM Sans',sans-serif;font-size:.95rem;font-weight:700;cursor:pointer;width:100%;transition:background .2s;}
+  .fraud-modal-btn:hover{background:#922b21;}
+  .fraud-modal-btn.proceed{background:#606F49;margin-top:.6rem;}
+  .fraud-modal-btn.proceed:hover{background:#4a5538;}
 
   /* Results */
   .results-section{display:none;}
@@ -41,10 +71,44 @@
   .sub-bar{height:8px;background:var(--card-border);border-radius:6px;overflow:hidden;}
   .sub-fill{height:100%;border-radius:6px;width:0;transition:width 1.2s cubic-bezier(.4,0,.2,1);}
 
-  /* Fraud panel */
+  /* ── FRAUD ANALYSIS CARD ── */
+  .fraud-analysis-card{background:#fff;border:1px solid var(--card-border);border-radius:14px;padding:1.5rem;margin-bottom:1.5rem;box-shadow:0 2px 12px rgba(96,111,73,.07);}
+  .fraud-analysis-card.flagged{border-color:#f1948a;border-width:2px;box-shadow:0 4px 20px rgba(192,57,43,.12);}
+  .fraud-analysis-card.medium{border-color:#ffc107;border-width:2px;box-shadow:0 4px 20px rgba(255,193,7,.12);}
+  .fraud-card-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:1.2rem;}
+  .fraud-card-title{display:flex;align-items:center;gap:.6rem;font-size:.9rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-dark);}
+  .fraud-card-badge{padding:.25rem .8rem;border-radius:20px;font-size:.78rem;font-weight:800;letter-spacing:.06em;}
+  .fraud-grid{display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1.2rem;}
+  .fraud-metric{background:#f9fafb;border-radius:10px;padding:.9rem;text-align:center;}
+  .fraud-metric.danger{background:#fef2f2;}
+  .fraud-metric.warning{background:#fff8e1;}
+  .fraud-metric.safe{background:#f0fdf4;}
+  .fm-label{font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#9ca3af;margin-bottom:.3rem;}
+  .fm-value{font-family:'Cormorant Garamond',serif;font-size:1.6rem;font-weight:700;}
+  .fm-value.danger{color:#922b21;} .fm-value.warning{color:#856404;} .fm-value.safe{color:#1e8449;}
+  .fm-sub{font-size:.72rem;color:#6b7280;margin-top:.1rem;}
+
+  /* Fraud score meter */
+  .fraud-meter-wrap{margin-bottom:1rem;}
+  .fraud-meter-hdr{display:flex;justify-content:space-between;font-size:.82rem;font-weight:600;color:var(--text-dark);margin-bottom:.4rem;}
+  .fraud-meter{height:12px;background:#e5e7eb;border-radius:8px;overflow:hidden;position:relative;}
+  .fraud-meter-fill{height:100%;border-radius:8px;width:0;transition:width 1.4s cubic-bezier(.4,0,.2,1);}
+  .fraud-zone-labels{display:flex;justify-content:space-between;font-size:.7rem;color:#9ca3af;margin-top:.3rem;}
+
+  /* Anomaly list */
+  .anomaly-list{background:#fef2f2;border:1px solid #fca5a5;border-radius:10px;padding:1rem;}
+  .anomaly-list.empty{background:#f0fdf4;border-color:#a9dfbf;}
+  .anomaly-list h4{font-size:.78rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;margin-bottom:.6rem;}
+  .anomaly-list.empty h4{color:#1e8449;}
+  .anomaly-list h4:not(.anomaly-list.empty h4){color:#922b21;}
+  .anomaly-tag{display:inline-flex;align-items:center;gap:.3rem;background:#fff;border:1px solid #fca5a5;border-radius:6px;padding:.2rem .6rem;font-size:.78rem;font-weight:600;color:#7f1d1d;margin:.2rem;}
+
+  /* Inline fraud banner */
   .fraud-panel{border-radius:14px;padding:1.2rem 1.5rem;margin-bottom:1.5rem;display:flex;align-items:center;gap:1rem;font-size:.88rem;font-weight:600;}
   .fraud-clean{background:#eafaf1;border:1.5px solid #a9dfbf;color:#1e8449;}
-  .fraud-flagged{background:#fdedec;border:1.5px solid #f1948a;color:#922b21;}
+  .fraud-flagged{background:#fdedec;border:1.5px solid #f1948a;color:#922b21;animation:flicker .8s ease-in-out 3;}
+  .fraud-medium{background:#fff8e1;border:1.5px solid #ffc107;color:#856404;}
+  @keyframes flicker{0%,100%{opacity:1}50%{opacity:.7}}
 
   /* Accordion */
   .accordion{background:#fff;border:1px solid var(--card-border);border-radius:14px;margin-bottom:1.5rem;overflow:hidden;box-shadow:0 2px 12px rgba(96,111,73,.07);}
@@ -64,16 +128,70 @@
   .btn-plan{display:inline-block;padding:.8rem 2rem;background:rgba(255,255,255,.2);border:2px solid rgba(255,255,255,.6);color:#fff;border-radius:10px;font-family:'DM Sans',sans-serif;font-weight:700;font-size:.95rem;text-decoration:none;transition:all .2s;backdrop-filter:blur(4px);}
   .btn-plan:hover{background:rgba(255,255,255,.35);}
 
-  @media(max-width:768px){.top-row{grid-template-columns:1fr;}}
+  /* Pulse ring for WARNING */
+  .warn-pulse{display:inline-block;width:10px;height:10px;border-radius:50%;background:#C0392B;margin-right:4px;animation:warn-ring 1.2s ease-out infinite;}
+  @keyframes warn-ring{0%{box-shadow:0 0 0 0 rgba(192,57,43,.6)}70%{box-shadow:0 0 0 10px rgba(192,57,43,0)}100%{box-shadow:0 0 0 0 rgba(192,57,43,0)}}
+
+  @media(max-width:768px){.top-row{grid-template-columns:1fr;}.fraud-grid{grid-template-columns:1fr;}}
 </style>
 {% endblock %}
 {% block content %}
+
+{# ── FRAUD WARNING MODAL (shown automatically for MEDIUM/HIGH risk) ── #}
+{% set fr = fraud_result %}
+{% if fr.fraud_score > 0.25 or fr.is_fraud %}
+<div class="fraud-modal-overlay" id="fraudModal">
+  <div class="fraud-modal">
+    <div class="fraud-modal-icon">
+      {% if fr.is_fraud or fr.fraud_score > 0.5 %}🚨{% else %}⚠️{% endif %}
+    </div>
+    <h2>{% if fr.is_fraud %}Suspicious Activity Detected{% else %}Elevated Risk Detected{% endif %}</h2>
+
+    {% if fr.get('risk_level') == 'HIGH' or fr.is_fraud %}
+      <span class="fraud-modal-risk risk-high">⛔ HIGH RISK</span>
+    {% elif fr.get('risk_level') == 'MEDIUM' or fr.fraud_score > 0.25 %}
+      <span class="fraud-modal-risk risk-medium">⚠️ MEDIUM RISK</span>
+    {% endif %}
+
+    <p>
+      Our AI fraud detection system has flagged this transaction for review.
+      {% if fr.is_fraud %}Your request has been <strong>blocked</strong> pending manual verification.{% else %}Please review the anomalies below before proceeding.{% endif %}
+    </p>
+
+    {% if fr.anomaly_type and fr.anomaly_type != 'None detected' %}
+    <div class="fraud-modal-anomalies">
+      <h4>🔎 Detected Anomalies</h4>
+      {% for anomaly in fr.anomaly_type.split(', ') %}
+      <div class="anomaly-item">⚠️ {{ anomaly }}</div>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    <div class="fraud-modal-score">
+      <span>Risk Score</span>
+      <div class="fraud-score-bar-wrap">
+        <div class="fraud-score-bar" id="modalScoreBar"
+          style="background:{% if fr.fraud_score > 0.5 %}#C0392B{% else %}#FF9800{% endif %};width:0;"></div>
+      </div>
+      <span><strong>{{ "%.0f"|format(fr.fraud_score * 100) }}%</strong></span>
+    </div>
+
+    {% if fr.is_fraud %}
+      <button class="fraud-modal-btn" onclick="closeFraudModal()">I Understand — View Report</button>
+    {% else %}
+      <button class="fraud-modal-btn" onclick="closeFraudModal()">Acknowledge Warning</button>
+      <button class="fraud-modal-btn proceed" onclick="closeFraudModal()">Review My Score Anyway →</button>
+    {% endif %}
+  </div>
+</div>
+{% endif %}
+
 <div class="cs-wrap">
 
   <!-- Loading Animation -->
   <div class="loading-seq" id="loadingSeq">
     <h2 class="loading-title">🤖 Analyzing Your Profile</h2>
-    <p class="loading-sub">Our AI models are evaluating your creditworthiness…</p>
+    <p class="loading-sub">Our AI security & credit models are scanning your data…</p>
     <div class="load-steps">
       <div class="load-step">
         <div class="ls-icon" id="li1">⏳</div>
@@ -85,8 +203,8 @@
       <div class="load-step">
         <div class="ls-icon" id="li2">⏳</div>
         <div class="ls-bar">
-          <div class="ls-label">Running fraud detection models…</div>
-          <div class="ls-prog"><div class="ls-fill green" id="lf2"></div></div>
+          <div class="ls-label" id="fraudStepLabel">🛡️ Running fraud detection models…</div>
+          <div class="ls-prog"><div class="ls-fill {% if fr.fraud_score > 0.5 %}red{% elif fr.fraud_score > 0.25 %}orange{% else %}green{% endif %}" id="lf2"></div></div>
         </div>
       </div>
       <div class="load-step">
@@ -109,7 +227,6 @@
   <!-- Results -->
   <div class="results-section" id="resultsSection">
     {% set cr = score_result %}
-    {% set fr = fraud_result %}
     {% set score = cr.credit_score %}
     {% set sub = cr.sub_scores %}
 
@@ -149,21 +266,108 @@
       </div>
     </div>
 
-    <!-- Fraud Panel -->
+    <!-- ── FRAUD ANALYSIS CARD ── -->
+    {% set risk = fr.get('risk_level', 'LOW') %}
+    <div class="fraud-analysis-card {% if fr.is_fraud %}flagged{% elif risk == 'MEDIUM' %}medium{% endif %}">
+      <div class="fraud-card-header">
+        <div class="fraud-card-title">
+          {% if fr.is_fraud %}🚨{% elif risk == 'MEDIUM' %}⚠️{% else %}🛡️{% endif %}
+          Fraud Detection Analysis
+        </div>
+        <span class="fraud-card-badge
+          {% if fr.is_fraud or risk == 'HIGH' %}risk-high
+          {% elif risk == 'MEDIUM' %}risk-medium
+          {% else %}risk-low{% endif %}">
+          {% if fr.is_fraud or risk == 'HIGH' %}HIGH RISK
+          {% elif risk == 'MEDIUM' %}MEDIUM RISK
+          {% else %}LOW RISK{% endif %}
+        </span>
+      </div>
+
+      <div class="fraud-grid">
+        <div class="fraud-metric {% if fr.is_fraud %}danger{% elif risk == 'MEDIUM' %}warning{% else %}safe{% endif %}">
+          <div class="fm-label">Fraud Score</div>
+          <div class="fm-value {% if fr.is_fraud %}danger{% elif risk == 'MEDIUM' %}warning{% else %}safe{% endif %}">
+            {{ "%.0f"|format(fr.fraud_score * 100) }}%
+          </div>
+          <div class="fm-sub">{% if fr.fraud_score > 0.5 %}Above threshold{% elif fr.fraud_score > 0.25 %}Elevated{% else %}Within safe range{% endif %}</div>
+        </div>
+        <div class="fraud-metric {% if fr.is_fraud %}danger{% elif risk == 'MEDIUM' %}warning{% else %}safe{% endif %}">
+          <div class="fm-label">Risk Level</div>
+          <div class="fm-value {% if fr.is_fraud or risk == 'HIGH' %}danger{% elif risk == 'MEDIUM' %}warning{% else %}safe{% endif %}">
+            {{ risk }}
+          </div>
+          <div class="fm-sub">AI classification</div>
+        </div>
+        <div class="fraud-metric {% if fr.is_fraud %}danger{% else %}safe{% endif %}">
+          <div class="fm-label">Transaction Status</div>
+          <div class="fm-value {% if fr.is_fraud %}danger{% else %}safe{% endif %}">
+            {% if fr.is_fraud %}BLOCKED{% else %}CLEAR{% endif %}
+          </div>
+          <div class="fm-sub">{% if fr.is_fraud %}Flagged for review{% else %}No block applied{% endif %}</div>
+        </div>
+        <div class="fraud-metric">
+          <div class="fm-label">Detection Model</div>
+          <div class="fm-value safe" style="font-size:1rem;padding-top:.3rem;">RF + IF</div>
+          <div class="fm-sub">Random Forest & Isolation Forest</div>
+        </div>
+      </div>
+
+      <!-- Fraud Score Meter -->
+      <div class="fraud-meter-wrap">
+        <div class="fraud-meter-hdr">
+          <span>Fraud Probability Meter</span>
+          <span><strong>{{ "%.1f"|format(fr.fraud_score * 100) }}%</strong> risk</span>
+        </div>
+        <div class="fraud-meter">
+          <div class="fraud-meter-fill" id="fraudMeterFill"
+            style="background:linear-gradient(90deg,#27AE60 0%,#FF9800 50%,#C0392B 100%);"></div>
+        </div>
+        <div class="fraud-zone-labels">
+          <span>Safe (0%)</span><span>Medium (30%)</span><span>High (50%)</span><span>Critical (100%)</span>
+        </div>
+      </div>
+
+      <!-- Anomaly List -->
+      {% if fr.anomaly_type and fr.anomaly_type != 'None detected' %}
+      <div class="anomaly-list">
+        <h4 style="color:#922b21;">⚠️ Anomalies Detected</h4>
+        {% for anomaly in fr.anomaly_type.split(', ') %}
+        <span class="anomaly-tag">🔶 {{ anomaly }}</span>
+        {% endfor %}
+      </div>
+      {% else %}
+      <div class="anomaly-list empty">
+        <h4>✅ No Anomalies Detected</h4>
+        <span style="font-size:.84rem;color:#1e8449;">All behavioral patterns are within normal ranges. Transaction appears legitimate.</span>
+      </div>
+      {% endif %}
+    </div>
+
+    <!-- Inline Fraud Warning Banner -->
     {% if fr.is_fraud %}
-    <div class="fraud-panel fraud-flagged">🚨 Fraud Alert: {{ fr.anomaly_type }} — Score: {{ "%.2f"|format(fr.fraud_score * 100) }}%</div>
+    <div class="fraud-panel fraud-flagged">
+      <span class="warn-pulse"></span>
+      🚨 FRAUD ALERT: {{ fr.anomaly_type }} — This transaction has been flagged and requires review.
+    </div>
+    {% elif risk == 'MEDIUM' %}
+    <div class="fraud-panel fraud-medium">
+      ⚠️ Elevated Risk Detected — Fraud Score: {{ "%.1f"|format(fr.fraud_score * 100) }}%. Anomaly: {{ fr.anomaly_type }}. Proceeding with caution.
+    </div>
     {% else %}
-    <div class="fraud-panel fraud-clean">✅ Fraud Check Passed — No anomalies detected (Risk: {{ "%.1f"|format(fr.fraud_score * 100) }}%)</div>
+    <div class="fraud-panel fraud-clean">
+      ✅ Fraud Check Passed — No anomalies detected (Risk Score: {{ "%.1f"|format(fr.fraud_score * 100) }}%)
+    </div>
     {% endif %}
 
     <!-- ML Transparency Accordion -->
     <div class="accordion">
-      <button class="acc-btn" onclick="toggleAcc(this)">🔍 How was this score calculated?</button>
+      <button class="acc-btn" onclick="toggleAcc(this)">🔍 How does fraud detection work?</button>
       <div class="acc-body">
-        <p style="margin-bottom:.7rem;">SmartPay uses a 3-layer AI pipeline to evaluate your creditworthiness:</p>
-        <p><span class="model-tag">Logistic Regression</span> — Primary credit scoring model trained on 10,000+ synthetic profiles. Weighs income, repayment history, and KYC quality to generate the base credit score (300–900).</p>
-        <p style="margin-top:.6rem;"><span class="model-tag">Isolation Forest</span> — Unsupervised anomaly detection that identifies outlier behavioral patterns such as unusual purchase velocities, device mismatches, or location anomalies. Generates the fraud score.</p>
-        <p style="margin-top:.6rem;"><span class="model-tag">Random Forest</span> — 100-tree ensemble classifier used for final approval decision and late-payment risk prediction. Combines all sub-scores to produce the approval probability.</p>
+        <p style="margin-bottom:.7rem;">SmartPay uses a <strong>2-layer AI security pipeline</strong> to detect fraudulent transactions in real time:</p>
+        <p><span class="model-tag">Isolation Forest</span> — Unsupervised anomaly detection that identifies outlier behavioral patterns such as unusual purchase amounts, late-night transactions, device mismatches, or abnormal transaction velocity.</p>
+        <p style="margin-top:.6rem;"><span class="model-tag">Random Forest Classifier</span> — 100-tree ensemble model trained on labeled fraud data. Produces a fraud probability score from 0–100%. Transactions above 50% are flagged as potential fraud.</p>
+        <p style="margin-top:.6rem;"><span class="model-tag">Rule Engine</span> — Hardcoded rules layer: transactions above ₹30,000, placed between 1–4 AM, or with amount 5× above user's average are automatically flagged as anomalies.</p>
         <p style="margin-top:.8rem;color:#9ca3af;font-size:.8rem;">Approval probability: <strong>{{ "%.1f"|format(cr.approval_probability * 100) }}%</strong> | Risk Category: <strong>{{ cr.risk_category }}</strong></p>
       </div>
     </div>
@@ -179,9 +383,25 @@
     {% else %}
     <div class="decision-rejected">
       <div class="decision-icon">❌</div>
-      <div class="decision-text">Not Approved</div>
-      <div class="decision-sub">Your current credit score ({{ score }}) does not meet our minimum threshold of 550. Continue building your score!</div>
-      <a href="{{ url_for('dashboard.home') }}" class="btn-plan">← Back to Dashboard</a>
+      <div class="decision-text">Application Rejected</div>
+      <div class="decision-sub">
+        {% if fr.is_fraud %}
+          Your application was rejected due to fraudulent activity detected in your account.
+        {% elif current_user.is_blacklisted %}
+          Your account has been blacklisted due to confirmed fraud or repeated defaults.
+        {% else %}
+          Your credit profile does not meet our minimum requirements at this time.
+        {% endif %}
+      </div>
+      <div style="background:rgba(255,255,255,0.15);border-radius:8px;padding:1rem;margin:1rem auto;max-width:500px;">
+        <p style="margin:0.3rem 0;">Fraud Score: {{ "%.1f"|format(fr.fraud_score * 100) }}%</p>
+        <p style="margin:0.3rem 0;">Credit Score: {{ score_result.credit_score }}</p>
+        <p style="margin:0.3rem 0;">Risk Level: {{ fr.get('risk_level', 'N/A') }}</p>
+        {% if fr.anomaly_type and fr.anomaly_type != 'None detected' %}
+        <p style="margin:0.3rem 0;color:#FFCCCC;">{{ fr.anomaly_type }}</p>
+        {% endif %}
+      </div>
+      <a href="{{ url_for('shop.index') }}" class="btn-plan">Return to Shop</a>
     </div>
     {% endif %}
   </div>
@@ -189,17 +409,44 @@
 
 <script>
   // ── Loading Sequence ──
+  const fraudScore = {{ fr.fraud_score }};
+  const isFraud    = {{ 'true' if fr.is_fraud else 'false' }};
+
   const steps = ['lf1','lf2','lf3','lf4'];
-  const icons = ['li1','li2','li3','li4'];
+  const icons  = ['li1','li2','li3','li4'];
   let s = 0;
 
   function runStep() {
     if (s >= steps.length) { showResults(); return; }
     const fill = document.getElementById(steps[s]);
     const icon = document.getElementById(icons[s]);
-    icon.textContent = '🔄'; icon.className = 'ls-icon run';
+
+    // Special animation for fraud step
+    if (s === 1) {
+      icon.textContent = '🔄'; icon.className = 'ls-icon fraud-run';
+    } else {
+      icon.textContent = '🔄'; icon.className = 'ls-icon run';
+    }
     fill.style.width = '100%';
-    setTimeout(() => { icon.textContent = '✅'; icon.className = 'ls-icon done'; s++; runStep(); }, 900);
+
+    const delay = s === 1 ? 1400 : 900; // Slower for fraud step
+    setTimeout(() => {
+      if (s === 1) {
+        // Show fraud result on the icon
+        if (isFraud || fraudScore > 0.5) {
+          icon.textContent = '🚨'; icon.className = 'ls-icon fraud-warn';
+          document.getElementById('fraudStepLabel').innerHTML = '🛡️ Fraud detection — <strong style="color:#C0392B;">SUSPICIOUS DATA FOUND</strong>';
+        } else if (fraudScore > 0.25) {
+          icon.textContent = '⚠️'; icon.className = 'ls-icon fraud-warn';
+          document.getElementById('fraudStepLabel').innerHTML = '🛡️ Fraud detection — <strong style="color:#856404;">Elevated risk detected</strong>';
+        } else {
+          icon.textContent = '✅'; icon.className = 'ls-icon done';
+        }
+      } else {
+        icon.textContent = '✅'; icon.className = 'ls-icon done';
+      }
+      s++; runStep();
+    }, delay);
   }
   runStep();
 
@@ -208,6 +455,42 @@
     document.getElementById('resultsSection').style.display='block';
     initCharts();
     animateBars();
+    animateFraudMeter();
+
+    // Show fraud modal after a brief delay
+    {% if fr.fraud_score > 0.25 or fr.is_fraud %}
+    setTimeout(() => {
+      document.getElementById('fraudModal').classList.add('show');
+      // Animate modal score bar
+      setTimeout(() => {
+        document.getElementById('modalScoreBar').style.width = '{{ "%.0f"|format(fr.fraud_score * 100) }}%';
+      }, 400);
+    }, 600);
+    {% endif %}
+  }
+
+  function closeFraudModal() {
+    const modal = document.getElementById('fraudModal');
+    if (modal) {
+      modal.style.opacity = '0';
+      setTimeout(() => { modal.style.display = 'none'; }, 300);
+    }
+  }
+
+  // Close modal on overlay click
+  document.addEventListener('DOMContentLoaded', () => {
+    const overlay = document.getElementById('fraudModal');
+    if (overlay) {
+      overlay.addEventListener('click', (e) => {
+        if (e.target === overlay) closeFraudModal();
+      });
+    }
+  });
+
+  function animateFraudMeter() {
+    setTimeout(() => {
+      document.getElementById('fraudMeterFill').style.width = '{{ "%.1f"|format(fr.fraud_score * 100) }}%';
+    }, 300);
   }
 
   function initCharts() {
