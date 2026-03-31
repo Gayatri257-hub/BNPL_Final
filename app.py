@@ -9,6 +9,13 @@ def create_app(config_class=Config):
     app = Flask(__name__)
     app.config.from_object(config_class)
 
+    # Log the DB URL in use (mask password for security)
+    import re
+    _db_url = app.config.get('SQLALCHEMY_DATABASE_URI', '')
+    _masked = re.sub(r'(:)[^@]+(@)', r'\1****\2', _db_url)
+    app.logger.info(f"[SmartPay] Connecting to DB: {_masked}")
+    print(f"[SmartPay] Connecting to DB: {_masked}", flush=True)
+
     # Ensure upload directories exist (ignore errors on read-only filesystems)
     try:
         os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
