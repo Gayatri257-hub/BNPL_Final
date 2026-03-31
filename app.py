@@ -76,13 +76,23 @@ def create_app(config_class=Config):
     def server_error(e):
         return render_template('error/500.html'), 500
 
-    # Create all DB tables on first run (fail-safe: DB may not be ready yet)
+    # Create all DB tables on first run — retry loop handles Railway startup race
     with app.app_context():
-        try:
-            from models import user, transaction, bnpl_plan, repayment, fraud_log, kyc  # noqa: F401
-            db.create_all()
-        except Exception as e:
-            app.logger.warning(f"db.create_all() skipped at startup: {e}")
+        import time
+        from models import user, transaction, bnpl_plan, repayment, fraud_log, kyc  # noqa: F401
+        max_retries = 5
+        for attempt in range(max_retries):
+            try:
+                db.create_all()
+                print("Database tables created successfully!", flush=True)
+                break
+            except Exception as e:
+                if attempt < max_retries - 1:
+                    print(f"DB connection attempt {attempt + 1} failed: {e}. Retrying in 5 seconds...", flush=True)
+                    time.sleep(5)
+                else:
+                    print(f"Warning: Could not create tables after {max_retries} attempts: {e}", flush=True)
+                    print("App will start anyway - tables may already exist", flush=True)
 
     return app
 
